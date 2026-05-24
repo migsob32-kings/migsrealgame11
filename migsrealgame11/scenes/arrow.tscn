@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://b5i66gots2pvq"]
+
+[ext_resource type="Script" uid="uid://ck7t6r3kbajqe" path="res://Scripts/arrow.gd" id="1_23jat"]
+[ext_resource type="Texture2D" uid="uid://b5udrt07yq5vd" path="res://Sprites/GandalfHardcore Archer/arrow.png" id="1_umosx"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_23jat"]
+radius = 2.0
+height = 28.0
+
+[node name="Area2D" type="Area2D"]
+script = ExtResource("1_23jat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_23jat")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_umosx")
