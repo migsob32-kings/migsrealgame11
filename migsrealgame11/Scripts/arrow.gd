@@ -2,7 +2,7 @@ extends RigidBody2D
 
 func _ready():
 	gravity_scale = 1.0
-	scale = Vector2(2.0, 2.0)
+	scale = Vector2(1.0, 1.0)
 	contact_monitor = true
 	max_contacts_reported = 1
 
