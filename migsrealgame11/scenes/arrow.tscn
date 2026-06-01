@@ -7,7 +7,7 @@
 radius = 2.0
 height = 28.0
 
-[node name="Area2D" type="RigidBody2D"]
+[node name="RigidBody2D" type="RigidBody2D"]
 scale = Vector2(1.0414, 0.813597)
 script = ExtResource("1_23jat")
 
@@ -17,3 +17,5 @@ shape = SubResource("CapsuleShape2D_23jat")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("1_umosx")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

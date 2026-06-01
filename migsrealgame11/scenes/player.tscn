@@ -236,9 +236,10 @@ animations = [{
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_g2els"]
 radius = 11.0
-height = 68.0
+height = 74.0
 
 [node name="CharacterBody2D" type="CharacterBody2D"]
+position = Vector2(0, -1)
 script = ExtResource("1_g2els")
 arrow_scene = ExtResource("2_dqkch")
 
@@ -246,7 +247,7 @@ arrow_scene = ExtResource("2_dqkch")
 position = Vector2(1, -37)
 scale = Vector2(1.7888, 1.72)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
-animation = &"endfire"
+animation = &"walk"
 autoplay = "idle"
 offset = Vector2(6, -10)
 
@@ -257,7 +258,7 @@ position = Vector2(17.3301, -5.23256)
 position = Vector2(17.33, -5.233)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(1, -35)
+position = Vector2(0, -36)
 shape = SubResource("CapsuleShape2D_g2els")
 
 [node name="Camera2D" type="Camera2D" parent="."]

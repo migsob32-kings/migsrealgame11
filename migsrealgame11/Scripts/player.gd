@@ -12,12 +12,20 @@ var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 # SHOOTING
 # =========================
 const SHOOT_POWER = 1200
-const TRAJECTORY_POINTS = 15
+const TRAJECTORY_POINTS = 30
+const TRAJECTORY_TIME_STEP = 0.07
 const TRAJECTORY_WIDTH = 2.5
+
+# Must match gravity_scale set in Arrow._ready()
+const ARROW_GRAVITY_SCALE = 1.0
 
 # AIM LIMITS
 const MAX_AIM_UP = -35
 const MAX_AIM_DOWN = 35
+
+# Minimum distance (px) from bow before aim direction is trusted.
+# Below this the mouse is too close and atan2 becomes unstable.
+const AIM_DEAD_ZONE = 30.0
 
 @export var arrow_scene: PackedScene
 
@@ -42,6 +50,9 @@ var is_jumping = false
 # =========================
 var is_aiming = false
 var is_firing = false
+
+# Cached aim direction — reused when mouse is inside the dead zone
+var last_aim_direction: Vector2 = Vector2.RIGHT
 
 var trajectory_line: Line2D
 var trajectory_container: Node2D
@@ -146,6 +157,7 @@ func handle_shooting(delta):
 		is_aiming = true
 		is_firing = true
 
+		update_trajectory_container_position()
 		update_trajectory()
 
 		trajectory_line.show()
@@ -161,6 +173,8 @@ func handle_shooting(delta):
 
 		look_at_mouse()
 
+		# Keep bow marker and trajectory start in sync every frame while aiming
+		update_trajectory_container_position()
 		update_trajectory()
 
 		velocity.x *= 0.5
@@ -194,69 +208,85 @@ func handle_shooting(delta):
 			play_animation("idle")
 
 # =========================
+# AIM DIRECTION — single source of truth
+# =========================
+func get_aim_direction() -> Vector2:
+
+	var bow_pos = get_bow_position()
+	var mouse_pos = get_global_mouse_position()
+	var to_mouse = mouse_pos - bow_pos
+
+	# Dead zone: if the mouse is too close to the bow, atan2 becomes
+	# unstable and causes violent shaking. Return the last good direction.
+	if to_mouse.length() < AIM_DEAD_ZONE:
+		return last_aim_direction
+
+	var sprite = get_sprite_node()
+	var facing_left = sprite != null and sprite.flip_h
+
+	# Collapse left/right into the same local angle space so aim limits
+	# apply identically regardless of which way the player faces.
+	var angle = atan2(to_mouse.y, abs(to_mouse.x))
+
+	var max_up   = deg_to_rad(MAX_AIM_UP)
+	var max_down = deg_to_rad(MAX_AIM_DOWN)
+	angle = clamp(angle, max_up, max_down)
+
+	# Reconstruct a world-space unit vector; flip X when facing left.
+	var dir = Vector2(cos(angle), sin(angle))
+	if facing_left:
+		dir.x = -dir.x
+
+	# Cache for dead zone fallback
+	last_aim_direction = dir
+	return dir
+
+# =========================
 # AIMING
 # =========================
 func look_at_mouse():
 
-	var bow_pos = get_bow_position()
-	var mouse_pos = get_global_mouse_position()
-
-	var direction = mouse_pos - bow_pos
-
-	var sprite = get_sprite_node()
+	var aim_dir = get_aim_direction()
+	var sprite   = get_sprite_node()
 
 	if not sprite:
 		return
 
-	# LOCALIZED AIM ANGLE
-	# This prevents weird flipping/twitching
-	var angle = atan2(direction.y, abs(direction.x))
+	# Derive sprite rotation from the true aim direction so the visual
+	# matches the direction vector exactly, regardless of flip state.
+	var angle = aim_dir.angle()
 
-	# HARD LIMITS
-	var max_up = deg_to_rad(MAX_AIM_UP)
-	var max_down = deg_to_rad(MAX_AIM_DOWN)
-
-	# Clamp aim
-	angle = clamp(angle, max_up, max_down)
-
-	# Apply facing direction
 	if sprite.flip_h:
-		sprite.rotation = PI - angle
+		sprite.rotation = PI + angle
 	else:
 		sprite.rotation = angle
 
-	# Rotate trajectory too
 	if trajectory_container:
-		trajectory_container.rotation = sprite.rotation
+		trajectory_container.rotation = 0.0
 
 # =========================
 # TRAJECTORY
 # =========================
 func update_trajectory():
 
-	var sprite = get_sprite_node()
-
-	if not sprite:
-		return
-
-	var direction = Vector2.RIGHT.rotated(sprite.rotation)
-
-	direction = direction.normalized()
-
-	var velocity_vector = direction * SHOOT_POWER
+	# Use the exact same direction and gravity scale the arrow uses.
+	var aim_dir = get_aim_direction()
+	var velocity_vector = aim_dir * SHOOT_POWER
+	var effective_gravity = gravity * ARROW_GRAVITY_SCALE
 
 	var points = []
 
-	var time_step = 0.05
-
 	for i in range(TRAJECTORY_POINTS):
-
-		var time = i * time_step
-
+		var time = i * TRAJECTORY_TIME_STEP
 		var x = velocity_vector.x * time
-		var y = velocity_vector.y * time + 0.5 * gravity * time * time
-
+		var y = velocity_vector.y * time + 0.5 * effective_gravity * time * time
 		points.append(Vector2(x, y))
+
+	# The container is a child of the sprite, so undo the sprite's rotation
+	# so the world-space point offsets render correctly.
+	var sprite = get_sprite_node()
+	if sprite and trajectory_container:
+		trajectory_container.rotation = -sprite.rotation
 
 	trajectory_line.points = points
 
@@ -270,27 +300,17 @@ func shoot_arrow():
 		return
 
 	var arrow = arrow_scene.instantiate()
-
 	get_parent().add_child(arrow)
 
 	var bow_pos = get_bow_position()
-
 	arrow.global_position = bow_pos
 
-	var sprite = get_sprite_node()
-
-	if not sprite:
-		return
-
-	var direction = Vector2.RIGHT.rotated(sprite.rotation)
-
-	direction = direction.normalized()
-
-	var velocity_vector = direction * SHOOT_POWER
+	# Identical direction to the trajectory preview — guaranteed match.
+	var aim_dir = get_aim_direction()
+	var velocity_vector = aim_dir * SHOOT_POWER
 
 	arrow.linear_velocity = velocity_vector
-
-	arrow.rotation = direction.angle()
+	arrow.rotation = aim_dir.angle()
 
 	arrow.add_collision_exception_with(self)
 
