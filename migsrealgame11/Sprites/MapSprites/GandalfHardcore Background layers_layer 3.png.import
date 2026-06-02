@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://covwgmgw3mfft"
-path="res://.godot/imported/Floor Tiles1.png-9e0585636014475e27097a69cfe7c892.ctex"
+uid="uid://cuvtuhyv4ccym"
+path="res://.godot/imported/GandalfHardcore Background layers_layer 3.png-1d4f6acace152fa06efa4edb8f88319b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Sprites/Floor Tiles1.png"
-dest_files=["res://.godot/imported/Floor Tiles1.png-9e0585636014475e27097a69cfe7c892.ctex"]
+source_file="res://Sprites/MapSprites/GandalfHardcore Background layers_layer 3.png"
+dest_files=["res://.godot/imported/GandalfHardcore Background layers_layer 3.png-1d4f6acace152fa06efa4edb8f88319b.ctex"]
 
 [params]
 

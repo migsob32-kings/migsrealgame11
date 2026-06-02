@@ -150,7 +150,7 @@ func _physics_process(delta):
 # =========================
 # SHOOTING
 # =========================
-func handle_shooting(delta):
+func handle_shooting(_delta):
 
 	if Input.is_action_just_pressed("shoot"):
 
