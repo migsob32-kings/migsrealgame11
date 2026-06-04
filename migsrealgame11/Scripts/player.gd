@@ -39,6 +39,11 @@ const JUMP_BUFFER_TIME = 0.1
 var jump_buffer_timer = 0.0
 
 # =========================
+# DOUBLE JUMP
+# =========================
+var double_jump_available = false
+
+# =========================
 # ANIMATION
 # =========================
 var was_on_floor_last_frame = false
@@ -56,6 +61,13 @@ var last_aim_direction: Vector2 = Vector2.RIGHT
 
 var trajectory_line: Line2D
 var trajectory_container: Node2D
+
+# =========================
+# INVENTORY
+# =========================
+var inventory = {
+	"mushroom": 0
+}
 
 # =========================
 # READY
@@ -100,6 +112,8 @@ func _physics_process(delta):
 	else:
 		coyote_timer = COYOTE_TIME
 		is_jumping = false
+		# Reset double jump when landing
+		double_jump_available = true
 
 	if just_landed:
 		play_landing_squash()
@@ -119,6 +133,17 @@ func _physics_process(delta):
 
 		jump_buffer_timer = 0.0
 		coyote_timer = 0.0
+
+		is_jumping = true
+
+		play_animation("jump")
+
+	# Double jump (in air, not on ground, and haven't used it yet)
+	elif Input.is_action_just_pressed("ui_accept") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
+
+		velocity.y = JUMP_VELOCITY
+
+		double_jump_available = false
 
 		is_jumping = true
 
@@ -417,3 +442,24 @@ func get_sprite_node():
 			return child
 
 	return null
+
+# =========================
+# INVENTORY
+# =========================
+func add_to_inventory(item_type: String, amount: int = 1):
+	
+	if item_type in inventory:
+		inventory[item_type] += amount
+	else:
+		inventory[item_type] = amount
+	
+	# Debug print
+	print("Collected ", item_type, "! Total: ", inventory[item_type])
+	print("Full Inventory: ", inventory)
+
+func get_inventory_count(item_type: String) -> int:
+	
+	if item_type in inventory:
+		return inventory[item_type]
+	
+	return 0
