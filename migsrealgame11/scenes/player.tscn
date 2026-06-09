@@ -238,15 +238,14 @@ animations = [{
 radius = 11.0
 height = 74.0
 
-[node name="CharacterBody2D" type="CharacterBody2D"]
-position = Vector2(0, -1)
+[node name="CharacterBody2D" type="CharacterBody2D" groups=["player"]]
 collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_g2els")
 arrow_scene = ExtResource("2_dqkch")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(1, -37)
+position = Vector2(1, -38)
 scale = Vector2(1.7888, 1.72)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
 animation = &"walk"
@@ -260,7 +259,7 @@ position = Vector2(17.3301, -5.23256)
 position = Vector2(17.33, -5.233)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -36)
+position = Vector2(0, -37)
 shape = SubResource("CapsuleShape2D_g2els")
 
 [node name="Camera2D" type="Camera2D" parent="."]

@@ -6,17 +6,18 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_k8258"]
 radius = 400.788
 
-[node name="Area2D" type="Area2D"]
+[node name="Mushrooms" type="Area2D"]
 scale = Vector2(0.0399992, 0.0399992)
 collision_layer = 2
 collision_mask = 2
 script = ExtResource("1_w4qlp")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.989264, 0.989264)
+scale = Vector2(1.37212, 1.37212)
 texture = ExtResource("2_jvgl5")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(1.38701, 1.38701)
 shape = SubResource("CircleShape2D_k8258")
 
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
