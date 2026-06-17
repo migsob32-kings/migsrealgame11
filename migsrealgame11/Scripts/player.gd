@@ -59,6 +59,10 @@ var is_firing = false
 # Cached aim direction — reused when mouse is inside the dead zone
 var last_aim_direction: Vector2 = Vector2.RIGHT
 
+# Set true by the animation_finished signal once "beginfire" completes —
+# does not depend on the Loop checkbox in the SpriteFrames panel.
+var beginfire_finished = false
+
 var trajectory_line: Line2D
 var trajectory_container: Node2D
 
@@ -96,6 +100,9 @@ func _ready():
 		trajectory_container.add_child(trajectory_line)
 
 		trajectory_line.hide()
+
+		if sprite is AnimatedSprite2D and not sprite.animation_finished.is_connected(_on_animation_finished):
+			sprite.animation_finished.connect(_on_animation_finished)
 
 # =========================
 # PHYSICS
@@ -136,7 +143,10 @@ func _physics_process(delta):
 
 		is_jumping = true
 
-		play_animation("jump")
+		# Don't let the jump animation stomp on beginfire/holdfire —
+		# keep aiming visually intact through the jump.
+		if not is_aiming and not is_firing:
+			play_animation("jump")
 
 	# Double jump (in air, not on ground, and haven't used it yet)
 	elif Input.is_action_just_pressed("ui_accept") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
@@ -147,7 +157,9 @@ func _physics_process(delta):
 
 		is_jumping = true
 
-		play_animation("jump")
+		# Same deal — preserve the fire animation if we're aiming/firing.
+		if not is_aiming and not is_firing:
+			play_animation("jump")
 
 	# Movement
 	var direction = Input.get_axis("left", "right")
@@ -181,6 +193,7 @@ func handle_shooting(_delta):
 
 		is_aiming = true
 		is_firing = true
+		beginfire_finished = false
 
 		update_trajectory_container_position()
 		update_trajectory()
@@ -189,11 +202,14 @@ func handle_shooting(_delta):
 
 		play_animation("beginfire")
 
-	if Input.is_action_pressed("shoot") and is_aiming:
+	elif Input.is_action_pressed("shoot") and is_aiming:
 
 		var sprite = get_sprite_node()
 
-		if sprite and sprite.animation != "holdfire":
+		# Only switch to holdfire once the animation_finished signal has
+		# told us "beginfire" actually completed — works regardless of
+		# whether Loop is on or off for that animation.
+		if sprite and sprite.animation == "beginfire" and beginfire_finished:
 			play_animation("holdfire")
 
 		look_at_mouse()
@@ -424,6 +440,13 @@ func play_animation(anim_name: String):
 
 		if sprite.animation != anim_name:
 			sprite.play(anim_name)
+
+func _on_animation_finished():
+
+	var sprite = get_sprite_node()
+
+	if sprite and sprite.animation == "beginfire":
+		beginfire_finished = true
 
 # =========================
 # GET SPRITE NODE
