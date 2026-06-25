@@ -4,7 +4,7 @@ func _ready():
 	gravity_scale = 1.0
 	linear_damp = 0.0
 	angular_damp = 0.0
-	scale = Vector2(2, 2)
+	scale = Vector2(0.5, 0.5)
 	contact_monitor = true
 	max_contacts_reported = 1
 

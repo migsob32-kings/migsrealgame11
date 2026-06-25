@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3 uid="uid://darvh43ifot14"]
+[gd_scene load_steps=36 format=3 uid="uid://darvh43ifot14"]
 
 [ext_resource type="Script" uid="uid://ckvm425aqthxb" path="res://Scripts/player.gd" id="1_g2els"]
 [ext_resource type="PackedScene" uid="uid://b5i66gots2pvq" path="res://scenes/arrow.tscn" id="2_dqkch"]
@@ -234,6 +234,16 @@ animations = [{
 "speed": 10.0
 }]
 
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dqkch"]
+lifetime_randomness = 0.15
+particle_flag_disable_z = true
+spread = 20.0
+initial_velocity_min = 0.4
+initial_velocity_max = 0.8
+gravity = Vector3(0, 98, 0)
+scale_min = 2.5
+scale_max = 2.5
+
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_g2els"]
 radius = 11.0
 height = 74.0
@@ -257,6 +267,16 @@ position = Vector2(17.3301, -5.23256)
 
 [node name="TrajectoryContainer" type="Node2D" parent="AnimatedSprite2D"]
 position = Vector2(17.33, -5.233)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="AnimatedSprite2D"]
+position = Vector2(-0.558998, 22.093)
+scale = Vector2(1, 1.039)
+emitting = false
+amount = 20
+lifetime = 0.4
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_dqkch")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -37)

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://dnur8kdu0w0ex"]
 
 [ext_resource type="Script" uid="uid://c3sk3t7tg5k3s" path="res://Scripts/mushroompickup.gd" id="1_w4qlp"]
-[ext_resource type="Texture2D" uid="uid://b3mko2q68i5jh" path="res://Sprites/mushroomdrop.png" id="2_jvgl5"]
+[ext_resource type="Texture2D" uid="uid://ds5iokksigh21" path="res://Sprites/image-removebg-preview.png" id="2_w4qlp"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_k8258"]
 radius = 400.788
@@ -13,8 +13,8 @@ collision_mask = 2
 script = ExtResource("1_w4qlp")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(1.37212, 1.37212)
-texture = ExtResource("2_jvgl5")
+scale = Vector2(2.10848, 2.10848)
+texture = ExtResource("2_w4qlp")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 scale = Vector2(1.38701, 1.38701)
