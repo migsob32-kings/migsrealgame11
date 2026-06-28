@@ -19,6 +19,15 @@ const AIM_DEAD_ZONE = 30.0
 
 @export var arrow_scene: PackedScene
 
+# Camera zoom
+@onready var camera = $Camera2D
+var target_zoom = Vector2.ONE
+
+const ZOOM_SPEED = 18.0
+const MIN_ZOOM = 0.15
+const MAX_ZOOM = 1.40
+const ZOOM_STEP = 0.03
+
 # Jump helpers
 const COYOTE_TIME = 0.1
 var coyote_timer = 0.0
@@ -51,6 +60,8 @@ var inventory = {
 }
 
 func _ready():
+	target_zoom = camera.zoom
+
 	var sprite = get_sprite_node()
 
 	if sprite:
@@ -72,6 +83,16 @@ func _ready():
 		if sprite is AnimatedSprite2D:
 			sprite.animation_finished.connect(_on_animation_finished)
 
+func _input(event):
+	if event.is_action_pressed("zoom_in"):
+		target_zoom = camera.zoom - Vector2.ONE * ZOOM_STEP
+
+	if event.is_action_pressed("zoom_out"):
+		target_zoom = camera.zoom + Vector2.ONE * ZOOM_STEP
+
+	target_zoom.x = clamp(target_zoom.x, MIN_ZOOM, MAX_ZOOM)
+	target_zoom.y = clamp(target_zoom.y, MIN_ZOOM, MAX_ZOOM)
+
 func _physics_process(delta):
 	var was_airborne = not is_on_floor()
 
@@ -81,7 +102,6 @@ func _physics_process(delta):
 		coyote_timer -= delta
 		is_jumping = true
 
-		# Track falling speed only
 		if velocity.y > 0:
 			landing_velocity = velocity.y
 	else:
@@ -136,12 +156,20 @@ func _physics_process(delta):
 
 	move_and_slide()
 
+	update_camera_zoom(delta)
+
 	# Landing check
 	if was_airborne and is_on_floor():
 		if landing_velocity > 500:
 			play_jump_particles()
 
 		landing_velocity = 0
+
+func update_camera_zoom(delta):
+	camera.zoom = camera.zoom.lerp(target_zoom, ZOOM_SPEED * delta)
+
+	if camera.zoom.distance_to(target_zoom) < 0.001:
+		camera.zoom = target_zoom
 
 func handle_shooting(_delta):
 	if Input.is_action_just_pressed("shoot") and can_shoot:
@@ -194,7 +222,7 @@ func play_jump_particles():
 	if sprite and sprite.has_node("GPUParticles2D"):
 		var particles = sprite.get_node("GPUParticles2D")
 
-		particles.global_position = global_position + Vector2(0, 18)
+		particles.global_position = global_position + Vector2(0, 7.5)
 
 		var mat = particles.process_material
 		if mat:
@@ -204,7 +232,6 @@ func play_jump_particles():
 			mat.initial_velocity_max = 100
 			mat.gravity = Vector3(0, 250, 0)
 
-		# Dirt color
 		particles.modulate = Color(0.42, 0.30, 0.18)
 
 		particles.restart()
