@@ -21,12 +21,10 @@ const AIM_DEAD_ZONE = 30.0
 
 # Camera zoom
 @onready var camera = $Camera2D
-var target_zoom = Vector2.ONE
 
-const ZOOM_SPEED = 18.0
 const MIN_ZOOM = 0.15
 const MAX_ZOOM = 1.40
-const ZOOM_STEP = 0.03
+const ZOOM_STEP = 0.1
 
 # Jump helpers
 const COYOTE_TIME = 0.1
@@ -60,8 +58,6 @@ var inventory = {
 }
 
 func _ready():
-	target_zoom = camera.zoom
-
 	var sprite = get_sprite_node()
 
 	if sprite:
@@ -85,13 +81,14 @@ func _ready():
 
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
-		target_zoom = camera.zoom - Vector2.ONE * ZOOM_STEP
+		apply_zoom(-ZOOM_STEP)
 
 	if event.is_action_pressed("zoom_out"):
-		target_zoom = camera.zoom + Vector2.ONE * ZOOM_STEP
+		apply_zoom(ZOOM_STEP)
 
-	target_zoom.x = clamp(target_zoom.x, MIN_ZOOM, MAX_ZOOM)
-	target_zoom.y = clamp(target_zoom.y, MIN_ZOOM, MAX_ZOOM)
+func apply_zoom(amount: float):
+	var new_zoom_value = clamp(camera.zoom.x + amount, MIN_ZOOM, MAX_ZOOM)
+	camera.zoom = Vector2(new_zoom_value, new_zoom_value)
 
 func _physics_process(delta):
 	var was_airborne = not is_on_floor()
@@ -156,20 +153,12 @@ func _physics_process(delta):
 
 	move_and_slide()
 
-	update_camera_zoom(delta)
-
 	# Landing check
 	if was_airborne and is_on_floor():
 		if landing_velocity > 500:
 			play_jump_particles()
 
 		landing_velocity = 0
-
-func update_camera_zoom(delta):
-	camera.zoom = camera.zoom.lerp(target_zoom, ZOOM_SPEED * delta)
-
-	if camera.zoom.distance_to(target_zoom) < 0.001:
-		camera.zoom = target_zoom
 
 func handle_shooting(_delta):
 	if Input.is_action_just_pressed("shoot") and can_shoot:
