@@ -150,11 +150,9 @@ position = Vector2(0, -14.8936)
 shape = SubResource("CircleShape2D_sluk2")
 
 [node name="LedgeCheck" type="RayCast2D" parent="."]
-position = Vector2(-4.9738e-14, -14.8936)
-rotation = -1.5708
 exclude_parent = false
+target_position = Vector2(0, 14)
 
 [node name="WallCheck" type="RayCast2D" parent="."]
-position = Vector2(-4.9738e-14, -14.8936)
-rotation = -1.5708
 exclude_parent = false
+target_position = Vector2(0, 14)

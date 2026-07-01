@@ -146,7 +146,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_l71n6")
 }],
-"loop": true,
+"loop": false,
 "name": &"endfire",
 "speed": 10.0
 }, {
@@ -258,7 +258,7 @@ arrow_scene = ExtResource("2_dqkch")
 position = Vector2(1, -38)
 scale = Vector2(1.7888, 1.72)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
-animation = &"beginfire"
+animation = &"holdfire"
 autoplay = "idle"
 offset = Vector2(6, -10)
 

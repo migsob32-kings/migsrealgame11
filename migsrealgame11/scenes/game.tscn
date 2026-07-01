@@ -7070,13 +7070,13 @@ tile_set = SubResource("TileSet_ryrav")
 position = Vector2(-66, -28)
 
 [node name="MushroomEnemy" parent="Map" instance=ExtResource("7_kvpfn")]
-position = Vector2(3033, -1)
+position = Vector2(2866, -50)
 
 [node name="MushroomEnemy2" parent="Map" instance=ExtResource("7_kvpfn")]
 position = Vector2(2375, -141)
 
 [node name="MushroomEnemy3" parent="Map" instance=ExtResource("7_kvpfn")]
-position = Vector2(1230, -86)
+position = Vector2(1606, -123)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("7_ir15t")]
 position = Vector2(11, -40)
