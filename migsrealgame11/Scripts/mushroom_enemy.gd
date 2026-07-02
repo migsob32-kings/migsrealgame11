@@ -4,20 +4,33 @@ enum State { PATROL, CHASE }
 var state = State.PATROL
 
 @export var patrol_speed := 65.0
-@export var chase_speed := 140.0
-@export var jump_velocity := -420.0
+@export var chase_speed := 145.0
+@export var jump_velocity := -450.0
 @export var gravity := 900.0
 @export var chase_duration := 5.0
-@export var patrol_walk_time := 4.0
-@export var stop_distance := 18.0
+@export var stop_jump_distance := 40.0
+@export var attack_range := 30.0
+@export var attack_cooldown := 1.0
+@export var ledge_grace_time := 0.15
+@export var max_wall_stuck_time := 0.8
+@export var debug_mode := true
 
 var direction := 1
 var player: Node2D = null
 var chase_timer := 0.0
-var patrol_timer := 0.0
 var direction_cooldown := 0.0
 var jump_cooldown := 0.0
-var jump_locked := false
+var attack_timer := 0.0
+var turn_locked := false
+var is_attacking := false
+var ledge_timer := 0.0
+
+var wall_stuck_timer := 0.0
+var attempted_wall_jump := false
+
+var ledge_start_pos := Vector2.ZERO
+var wall_start_pos := Vector2.ZERO
+var wall_start_target := Vector2.ZERO
 
 @onready var vision_area: Area2D = $VisionArea
 @onready var ledge_check: RayCast2D = $LedgeCheck
@@ -26,121 +39,227 @@ var jump_locked := false
 
 
 func _ready():
-	patrol_timer = patrol_walk_time
 	vision_area.body_entered.connect(_on_vision_entered)
 	vision_area.body_exited.connect(_on_vision_exited)
 
+	ledge_start_pos = ledge_check.position
+	wall_start_pos = wall_check.position
+	wall_start_target = wall_check.target_position
+
+	ledge_check.exclude_parent = true
+	wall_check.exclude_parent = true
+
 
 func _physics_process(delta):
-
-	if not is_on_floor():
+	if !is_on_floor():
 		velocity.y += gravity * delta
-	else:
-		# reset jump lock when grounded
-		jump_locked = false
 
-	if direction_cooldown > 0.0:
+	if direction_cooldown > 0:
 		direction_cooldown -= delta
+	else:
+		turn_locked = false
 
-	if jump_cooldown > 0.0:
+	if jump_cooldown > 0:
 		jump_cooldown -= delta
+
+	if attack_timer > 0:
+		attack_timer -= delta
 
 	match state:
 		State.PATROL:
 			_patrol(delta)
-
 		State.CHASE:
 			_chase(delta)
 
 	_update_raycasts()
 	_update_animation()
+
+	if debug_mode:
+		queue_redraw()
+
 	move_and_slide()
 
 
 func _patrol(delta):
-	velocity.x = direction * patrol_speed
-	patrol_timer -= delta
+	if is_attacking:
+		return
 
-	if patrol_timer <= 0.0 or (wall_check.is_colliding() and direction_cooldown <= 0.0):
-		direction *= -1
-		patrol_timer = patrol_walk_time
-		direction_cooldown = 0.5
+	velocity.x = direction * patrol_speed
+
+	if turn_locked:
+		return
+
+	# Wall logic
+	if wall_check.is_colliding():
+		var hit = wall_check.get_collider()
+
+		if hit != player:
+			if !attempted_wall_jump and is_on_floor() and jump_cooldown <= 0:
+				velocity.y = jump_velocity
+				velocity.x = direction * (patrol_speed + 40)
+
+				jump_cooldown = 0.8
+				attempted_wall_jump = true
+				wall_stuck_timer = 0.0
+
+				if debug_mode:
+					print("PATROL: Attempting wall jump")
+			else:
+				wall_stuck_timer += delta
+
+				if wall_stuck_timer >= max_wall_stuck_time:
+					_flip_direction()
+					attempted_wall_jump = false
+					wall_stuck_timer = 0.0
+
+					if debug_mode:
+						print("PATROL: Failed wall jump, turning")
+	else:
+		wall_stuck_timer = 0.0
+		attempted_wall_jump = false
+
+	# Ledge logic
+	if is_on_floor():
+		if !ledge_check.is_colliding():
+			ledge_timer += delta
+
+			if ledge_timer >= ledge_grace_time:
+				_flip_direction()
+
+				if debug_mode:
+					print("PATROL: Confirmed ledge, turning")
+		else:
+			ledge_timer = 0.0
 
 
 func _chase(delta):
+	if is_attacking:
+		velocity.x = 0
+		return
 
-	# Keep chasing after losing sight
 	if player == null:
 		chase_timer -= delta
 
-		if chase_timer <= 0.0:
+		if chase_timer <= 0:
 			state = State.PATROL
-			patrol_timer = patrol_walk_time
-			return
+		return
 
-	var target_x = global_position.x
+	chase_timer = chase_duration
 
-	if player != null:
-		chase_timer = chase_duration
-		target_x = player.global_position.x
-
-	var diff = target_x - global_position.x
+	var diff = player.global_position.x - global_position.x
 	var distance = abs(diff)
 
-	# Face player
-	if distance > 8.0 and direction_cooldown <= 0.0:
+	if distance > 12:
 		var new_dir = sign(diff)
 
-		if new_dir != direction:
+		if new_dir != direction and !turn_locked:
 			direction = new_dir
-			direction_cooldown = 0.2
+			direction_cooldown = 0.25
+			turn_locked = true
 
-	# Stop close
-	if player != null and distance <= stop_distance:
-		velocity.x = 0
+	if distance <= attack_range and attack_timer <= 0:
+		_start_attack()
 		return
 
 	velocity.x = direction * chase_speed
 
-	# -------------------------------
-	# FIXED JUMP SYSTEM (NO SPAM)
-	# -------------------------------
-	if is_on_floor() and jump_cooldown <= 0.0 and not jump_locked:
+	if distance <= stop_jump_distance:
+		return
 
-		var should_jump := false
-
+	if is_on_floor() and jump_cooldown <= 0:
 		if wall_check.is_colliding():
 			var hit = wall_check.get_collider()
+
 			if hit != player:
-				should_jump = true
+				velocity.y = jump_velocity
+				velocity.x = direction * (chase_speed + 40)
 
-		elif not ledge_check.is_colliding():
-			should_jump = true
+				jump_cooldown = 0.8
 
-		if should_jump:
+				if debug_mode:
+					print("CHASE: Jumping obstacle")
+
+		elif !ledge_check.is_colliding():
 			velocity.y = jump_velocity
 			jump_cooldown = 0.8
-			jump_locked = true
+
+			if debug_mode:
+				print("CHASE: Jumping gap")
+
+
+func _start_attack():
+	is_attacking = true
+	velocity.x = 0
+	attack_timer = attack_cooldown
+
+	sprite.play("attack")
+
+	if debug_mode:
+		print("ATTACK!")
+
+	await sprite.animation_finished
+	is_attacking = false
+
+
+func _flip_direction():
+	if turn_locked:
+		return
+
+	direction *= -1
+	direction_cooldown = 0.4
+	turn_locked = true
+
+	if debug_mode:
+		print("FLIP:", direction)
 
 
 func _update_raycasts():
-	ledge_check.position.x = abs(ledge_check.position.x) * direction
-	wall_check.position.x = abs(wall_check.position.x) * direction
+	# Ledge ray
+	ledge_check.position.x = direction * abs(ledge_start_pos.x)
+	ledge_check.position.y = ledge_start_pos.y
 
-	var ledge_dist: float = abs(ledge_check.target_position.x)
-	var wall_dist: float = abs(wall_check.target_position.x)
+	# Wall ray
+	wall_check.position.x = direction * abs(wall_start_pos.x)
+	wall_check.position.y = wall_start_pos.y
 
-	ledge_check.target_position.x = ledge_dist * direction
-	wall_check.target_position.x = wall_dist * direction
+	# Correct symmetric flip
+	wall_check.target_position.x = abs(wall_start_target.x) * direction
+	wall_check.target_position.y = wall_start_target.y
 
 
 func _update_animation():
-	sprite.flip_h = direction == 1
+	sprite.flip_h = direction > 0
 
-	if abs(velocity.x) > 1.0:
-		sprite.play("running")
+	if is_attacking:
+		return
+
+	if abs(velocity.x) > 5 and is_on_floor():
+		if sprite.animation != "running":
+			sprite.play("running")
 	else:
-		sprite.play("idle")
+		if sprite.animation != "idle":
+			sprite.play("idle")
+
+
+func _draw():
+	if !debug_mode:
+		return
+
+	var ledge_end = ledge_check.position + ledge_check.target_position
+	draw_line(
+		ledge_check.position,
+		ledge_end,
+		Color.GREEN if ledge_check.is_colliding() else Color.RED,
+		2.0
+	)
+
+	var wall_end = wall_check.position + wall_check.target_position
+	draw_line(
+		wall_check.position,
+		wall_end,
+		Color.RED if wall_check.is_colliding() else Color.GREEN,
+		2.0
+	)
 
 
 func _on_vision_entered(body):
@@ -149,7 +268,12 @@ func _on_vision_entered(body):
 		state = State.CHASE
 		chase_timer = chase_duration
 
+		wall_check.add_exception(player)
+		ledge_check.add_exception(player)
+
 
 func _on_vision_exited(body):
 	if body == player:
+		wall_check.remove_exception(player)
+		ledge_check.remove_exception(player)
 		player = null
