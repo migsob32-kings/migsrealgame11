@@ -561,7 +561,7 @@ shape = SubResource("CapsuleShape2D_uyflu")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(0, -32)
 sprite_frames = SubResource("SpriteFrames_rlr07")
-animation = &"attack"
+animation = &"hit"
 autoplay = "idle"
 flip_h = true
 
@@ -574,11 +574,8 @@ shape = SubResource("CircleShape2D_sluk2")
 
 [node name="LedgeCheck" type="RayCast2D" parent="."]
 position = Vector2(7.97872, 0)
-exclude_parent = false
 target_position = Vector2(0, 24.4681)
 
 [node name="WallCheck" type="RayCast2D" parent="."]
-position = Vector2(5.85106, -13.2979)
-rotation = -1.5708
-exclude_parent = false
-target_position = Vector2(-1.90735e-06, 27.6596)
+position = Vector2(0, -13)
+target_position = Vector2(20, 0)

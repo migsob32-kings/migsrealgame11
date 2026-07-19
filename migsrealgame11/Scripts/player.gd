@@ -1,5 +1,9 @@
 extends CharacterBody2D
 
+# --- NEW: Tweak this in the Inspector to align the sprite with the collision shape! ---
+@export var flip_alignment_offset: float = 0.0 
+# -----------------------------------------------------------------------------------
+
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -253,6 +257,12 @@ func look_at_mouse():
 	var mouse_pos = get_global_mouse_position()
 
 	sprite.flip_h = mouse_pos.x < global_position.x
+	
+	# Shift the sprite position to maintain alignment based on flip
+	if sprite.flip_h:
+		sprite.position.x = -flip_alignment_offset
+	else:
+		sprite.position.x = flip_alignment_offset
 
 	update_trajectory_container_position()
 
@@ -323,8 +333,10 @@ func flip_sprite(direction: float):
 
 	if direction > 0:
 		sprite.flip_h = false
+		sprite.position.x = flip_alignment_offset
 	elif direction < 0:
 		sprite.flip_h = true
+		sprite.position.x = -flip_alignment_offset
 
 	update_trajectory_container_position()
 
