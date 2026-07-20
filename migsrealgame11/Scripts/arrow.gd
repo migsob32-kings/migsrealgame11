@@ -27,17 +27,24 @@ func _on_body_entered(body):
 		
 	has_hit = true
 	
-	# 1. Did we hit the enemy hard enough?
+	# 1. Did we hit something hard enough?
 	if linear_velocity.length() > min_damage_velocity:
 		if body.has_method("take_damage"):
-			body.take_damage(damage)
-			# Destroy the arrow immediately on hitting the enemy
-			queue_free()
-			return # Stop running the rest of the function!
 			
-	# 2. If we hit the environment (or hit the enemy too slowly)
-	# Freeze the arrow in place
-	freeze = true
+			# 2. Is it the enemy? Send damage + arrow X position
+			if "is_stunned" in body:
+				body.take_damage(damage, global_position.x)
+			# 3. Is it something else (like the player)? Send ONLY damage
+			else:
+				body.take_damage(damage)
+				
+			# Destroy the arrow immediately on hitting something with health
+			queue_free()
+			return 
+			
+	# 4. If we hit the environment (or hit the enemy too slowly)
+	# --- BUG FIX: Use set_deferred to safely freeze the physics body ---
+	set_deferred("freeze", true)
 	
 	# Start the cleanup timer
 	await get_tree().create_timer(4.0).timeout

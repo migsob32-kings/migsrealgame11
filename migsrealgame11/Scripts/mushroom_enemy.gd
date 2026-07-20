@@ -4,8 +4,11 @@ enum State { PATROL, CHASE }
 var state = State.PATROL
 
 # --- NEW: Health System ---
-@export var max_health := 20 # Takes 2 hits from a 10-damage arrow
+@export var max_health := 20
 var health := max_health
+
+# --- NEW: Drop System ---
+@export var drop_scene: PackedScene # Drag your mushroompickup.tscn here in the editor!
 
 @export var patrol_speed := 65.0
 @export var chase_speed := 145.0
@@ -31,7 +34,7 @@ var attack_timer := 0.0
 
 var turn_locked := false
 var is_attacking := false
-var is_stunned := false # NEW: Tracks if the enemy is in hit-stun
+var is_stunned := false 
 
 var ledge_timer := 0.0
 var wall_stuck_timer := 0.0
@@ -45,6 +48,8 @@ var wall_start_pos := Vector2.ZERO
 @onready var wall_check: RayCast2D = $WallCheck
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
+@onready var alert_anim: AnimatedSprite2D = $Alert/AlertAnimation
+
 func _ready():
 	vision_area.body_entered.connect(_on_vision_entered)
 	vision_area.body_exited.connect(_on_vision_exited)
@@ -54,13 +59,13 @@ func _ready():
 
 	ledge_check.exclude_parent = true
 	wall_check.exclude_parent = true
+	
+	alert_anim.hide()
 
 func _physics_process(delta):
 	if !is_on_floor():
 		velocity.y += gravity * delta
 
-	# --- NEW: Hit Stun Freeze ---
-	# If stunned, apply gravity and slide, but completely skip all AI and animations
 	if is_stunned:
 		move_and_slide()
 		return
@@ -130,9 +135,7 @@ func _chase(delta):
 		return
 
 	if player == null:
-		chase_timer -= delta
-		if chase_timer <= 0:
-			state = State.PATROL
+		state = State.PATROL
 		return
 
 	chase_timer = chase_duration
@@ -175,7 +178,6 @@ func _start_attack():
 	
 	await sprite.animation_finished
 	
-	# Once animation is done, they can move again
 	is_attacking = false
 
 func _flip_direction():
@@ -210,6 +212,9 @@ func _update_animation():
 
 func _on_vision_entered(body):
 	if body.is_in_group("player"):
+		if state != State.CHASE:
+			_show_alert()
+			
 		player = body
 		state = State.CHASE
 		chase_timer = chase_duration
@@ -223,34 +228,7 @@ func _on_vision_exited(body):
 		ledge_check.remove_exception(player)
 		player = null
 
-func take_damage(amount):
-	# Apply damage
-	health -= amount
-	
-	# Die if health is depleted
-	if health <= 0:
-		queue_free()
-		return
-	
-	# --- NEW: Stun & Hit Animation Logic ---
-	is_stunned = true
-	is_attacking = false # Break them out of the attack state if interrupted!
-	velocity.x = 0
-	
-	# Play hit animation
-	sprite.play("hit")
-	
-	# Create a tween to handle the red flicker effect safely
-	var tween = create_tween()
-	
-	# Instantly turn the sprite red
-	sprite.modulate = Color(1, 0, 0)
-	
-	# Smoothly transition back to normal (white) over 0.2 seconds
-	tween.tween_property(sprite, "modulate", Color(1, 1, 1), 0.2)
-	
-	# Wait for 1/3 of a second before un-stunning
-	await get_tree().create_timer(0.33).timeout
-	
-	# End the stun
-	is_stunned = false
+func _show_alert():
+	alert_anim.show()
+	alert_anim.play("alert")
+	await alert_anim.animation_finished

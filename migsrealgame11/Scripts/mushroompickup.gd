@@ -5,7 +5,9 @@ extends Area2D
 @export var max_collect = 3
 
 func _ready():
-	body_entered.connect(_on_body_entered)
+	# --- BUG FIX: Check if the signal is connected before connecting it ---
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body):
 	if body.name == "Player" or body.is_in_group("player"):
