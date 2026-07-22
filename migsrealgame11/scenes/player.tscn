@@ -252,24 +252,27 @@ height = 74.0
 collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_g2els")
+right_facing_position = 12.0
+left_facing_position = -12.0
 arrow_scene = ExtResource("2_dqkch")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(1, -38)
+position = Vector2(13, -56)
 scale = Vector2(1.7888, 1.72)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
-animation = &"idle"
+animation = &"endfire"
 autoplay = "idle"
-offset = Vector2(6, -10)
+frame = 3
+frame_progress = 1.0
 
 [node name="BowMarker" type="Marker2D" parent="AnimatedSprite2D"]
-position = Vector2(17.3301, -5.23256)
+position = Vector2(9.50358, 4.06977)
 
 [node name="TrajectoryContainer" type="Node2D" parent="AnimatedSprite2D"]
-position = Vector2(17.33, -5.233)
+position = Vector2(9.50358, 4.06977)
 
 [node name="GPUParticles2D" type="GPUParticles2D" parent="AnimatedSprite2D"]
-position = Vector2(-0.558998, 22.093)
+position = Vector2(-6.14937, 22.093)
 scale = Vector2(1, 1.039)
 emitting = false
 amount = 20

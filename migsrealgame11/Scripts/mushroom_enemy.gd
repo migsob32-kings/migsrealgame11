@@ -232,3 +232,40 @@ func _show_alert():
 	alert_anim.show()
 	alert_anim.play("alert")
 	await alert_anim.animation_finished
+	alert_anim.hide() # Added a quick hide here so the alert exclamation mark goes away!
+
+# --- The Missing Health & Damage Functions ---
+
+func take_damage(amount, _attacker_x = null):
+	health -= amount
+	
+	# Stun logic
+	is_stunned = true
+	is_attacking = false
+	velocity.x = 0
+	
+	sprite.play("hit")
+	
+	# Red flash effect
+	var tween = create_tween()
+	sprite.modulate = Color(1, 0, 0)
+	tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+	
+	# Wait for hit animation to finish before they can move again
+	await sprite.animation_finished
+	is_stunned = false
+	
+	# Check if dead
+	if health <= 0:
+		die()
+
+func die():
+	# Drop the mushroom pickup if we have a scene loaded in the Inspector
+	if drop_scene != null:
+		var drop = drop_scene.instantiate()
+		drop.global_position = global_position
+		# Add it to the main game scene, not the enemy (so it doesn't delete with the enemy)
+		get_tree().current_scene.add_child(drop)
+		
+	# Delete the mushroom enemy
+	queue_free()

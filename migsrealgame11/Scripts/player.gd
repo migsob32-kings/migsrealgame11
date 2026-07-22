@@ -1,8 +1,9 @@
 extends CharacterBody2D
 
-# --- NEW: Tweak this in the Inspector to align the sprite with the collision shape! ---
-@export var flip_alignment_offset: float = 0.0 
-# -----------------------------------------------------------------------------------
+# --- NEW: Tweak the left one in the Inspector, leave the right one at 0! ---
+@export var right_facing_position: float = 0.0
+@export var left_facing_position: float = -10.0 
+# ---------------------------------------------------------------------------
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
@@ -23,7 +24,8 @@ const AIM_DEAD_ZONE = 30.0
 
 @export var arrow_scene: PackedScene
 
-# Camera zoom
+# Nodes
+@onready var sprite = $AnimatedSprite2D
 @onready var camera = $Camera2D
 
 const MIN_ZOOM = 0.15
@@ -62,8 +64,6 @@ var inventory = {
 }
 
 func _ready():
-	var sprite = get_sprite_node()
-
 	if sprite:
 		if sprite.has_node("TrajectoryContainer"):
 			trajectory_container = sprite.get_node("TrajectoryContainer")
@@ -80,8 +80,7 @@ func _ready():
 		trajectory_container.add_child(trajectory_line)
 		trajectory_line.hide()
 
-		if sprite is AnimatedSprite2D:
-			sprite.animation_finished.connect(_on_animation_finished)
+		sprite.animation_finished.connect(_on_animation_finished)
 
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
@@ -178,8 +177,6 @@ func handle_shooting(_delta):
 		play_animation("beginfire")
 
 	elif Input.is_action_pressed("shoot") and is_aiming:
-		var sprite = get_sprite_node()
-
 		if sprite.animation == "beginfire" and beginfire_finished:
 			play_animation("holdfire")
 
@@ -203,15 +200,12 @@ func handle_shooting(_delta):
 
 		trajectory_line.hide()
 
-		var sprite = get_sprite_node()
 		sprite.rotation = 0
 
 		if trajectory_container:
 			trajectory_container.rotation = 0
 
 func play_jump_particles():
-	var sprite = get_sprite_node()
-
 	if sprite and sprite.has_node("GPUParticles2D"):
 		var particles = sprite.get_node("GPUParticles2D")
 
@@ -238,7 +232,6 @@ func get_aim_direction() -> Vector2:
 	if to_mouse.length() < AIM_DEAD_ZONE:
 		return last_aim_direction
 
-	var sprite = get_sprite_node()
 	var facing_left = sprite.flip_h
 
 	var angle = atan2(to_mouse.y, abs(to_mouse.x))
@@ -253,25 +246,28 @@ func get_aim_direction() -> Vector2:
 	return dir
 
 func look_at_mouse():
-	var sprite = get_sprite_node()
 	var mouse_pos = get_global_mouse_position()
 
 	sprite.flip_h = mouse_pos.x < global_position.x
 	
 	# Shift the sprite position to maintain alignment based on flip
 	if sprite.flip_h:
-		sprite.position.x = -flip_alignment_offset
+		sprite.position.x = left_facing_position
 	else:
-		sprite.position.x = flip_alignment_offset
+		sprite.position.x = right_facing_position
 
 	update_trajectory_container_position()
 
 	var aim_dir = get_aim_direction()
 
+	# --- FIXED: Safely extract just the tilt angle so the player never flips upside down ---
+	var tilt_angle = atan2(aim_dir.y, abs(aim_dir.x))
+
 	if sprite.flip_h:
-		sprite.rotation = PI + aim_dir.angle()
+		sprite.rotation = -tilt_angle
 	else:
-		sprite.rotation = aim_dir.angle()
+		sprite.rotation = tilt_angle
+	# ---------------------------------------------------------------------------------------
 
 func update_trajectory():
 	var aim_dir = get_aim_direction()
@@ -286,8 +282,6 @@ func update_trajectory():
 		var y = velocity_vector.y * time + (0.5 * effective_gravity * time * time)
 
 		points.append(Vector2(x, y))
-
-	var sprite = get_sprite_node()
 
 	if sprite and trajectory_container:
 		trajectory_container.rotation = -sprite.rotation
@@ -315,45 +309,29 @@ func shoot_arrow():
 	can_shoot = true
 
 func get_bow_position() -> Vector2:
-	var sprite = get_sprite_node()
-
 	if sprite.has_node("BowMarker"):
 		return sprite.get_node("BowMarker").global_position
 
 	return global_position
 
 func update_trajectory_container_position():
-	var sprite = get_sprite_node()
-
 	if sprite.has_node("BowMarker") and trajectory_container:
 		trajectory_container.position = sprite.get_node("BowMarker").position
 
 func flip_sprite(direction: float):
-	var sprite = get_sprite_node()
-
 	if direction > 0:
 		sprite.flip_h = false
-		sprite.position.x = flip_alignment_offset
+		sprite.position.x = right_facing_position 
 	elif direction < 0:
 		sprite.flip_h = true
-		sprite.position.x = -flip_alignment_offset
+		sprite.position.x = left_facing_position
 
 	update_trajectory_container_position()
 
 func play_animation(anim_name: String):
-	var sprite = get_sprite_node()
-
 	if sprite.animation != anim_name:
 		sprite.play(anim_name)
 
 func _on_animation_finished():
-	var sprite = get_sprite_node()
-
 	if sprite.animation == "beginfire":
 		beginfire_finished = true
-
-func get_sprite_node():
-	if has_node("AnimatedSprite2D"):
-		return $AnimatedSprite2D
-
-	return null
