@@ -1,4 +1,4 @@
-[gd_scene load_steps=90 format=3 uid="uid://bpacjop2ubdt0"]
+[gd_scene load_steps=91 format=3 uid="uid://bpacjop2ubdt0"]
 
 [ext_resource type="Script" uid="uid://4c4exv0ag7bw" path="res://Scripts/mushroom_enemy.gd" id="1_wuyt4"]
 [ext_resource type="Texture2D" uid="uid://dahy0crgiewgx" path="res://Sprites/Mushroom without VFX/Mushroom-Idle.png" id="2_88g1x"]
@@ -588,6 +588,9 @@ animations = [{
 "speed": 10.0
 }]
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_gtvyl"]
+radius = 7.46578
+
 [node name="MushroomEnemy" type="CharacterBody2D"]
 scale = Vector2(1.88, 1.88)
 script = ExtResource("1_wuyt4")
@@ -631,3 +634,9 @@ sprite_frames = SubResource("SpriteFrames_q7scn")
 animation = &"alert"
 frame = 3
 frame_progress = 1.0
+
+[node name="HitboxArea" type="Area2D" parent="."]
+
+[node name="HitboxArea" type="CollisionShape2D" parent="HitboxArea"]
+position = Vector2(27.1277, -7.44681)
+shape = SubResource("CircleShape2D_gtvyl")

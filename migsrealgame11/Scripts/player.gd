@@ -1,6 +1,11 @@
 extends CharacterBody2D
 
-# --- NEW: Tweak the left one in the Inspector, leave the right one at 0! ---
+# --- NEW: Health System (50 health / 10 damage per hit = 5 hits!) ---
+@export var max_health: int = 50
+var health: int = max_health
+# --------------------------------------------------------------------
+
+# --- Tweak the left one in the Inspector, leave the right one at 0! ---
 @export var right_facing_position: float = 0.0
 @export var left_facing_position: float = -10.0 
 # ---------------------------------------------------------------------------
@@ -209,7 +214,7 @@ func play_jump_particles():
 	if sprite and sprite.has_node("GPUParticles2D"):
 		var particles = sprite.get_node("GPUParticles2D")
 
-		particles.global_position = global_position + Vector2(0, 7.5)
+		particles.global_position = global_position + Vector2(0, 0)
 
 		var mat = particles.process_material
 		if mat:
@@ -335,3 +340,20 @@ func play_animation(anim_name: String):
 func _on_animation_finished():
 	if sprite.animation == "beginfire":
 		beginfire_finished = true
+
+# --- NEW: Damage and Death Functions ---
+func take_damage(amount: int):
+	health -= amount
+	
+	# Flash the player red so we know they got hit!
+	if sprite:
+		var tween = create_tween()
+		sprite.modulate = Color(1, 0, 0)
+		tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+	
+	if health <= 0:
+		die()
+
+func die():
+	# Resets the current level completely!
+	get_tree().reload_current_scene()

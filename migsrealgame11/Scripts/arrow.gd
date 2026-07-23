@@ -1,6 +1,6 @@
 extends RigidBody2D
 
-@export var min_damage_velocity := 50.0 # Lowered this just in case!
+@export var min_damage_velocity := 50.0 
 @export var damage := 10
 
 var has_hit := false
@@ -27,7 +27,7 @@ func _on_body_entered(body):
 
 	has_hit = true
 
-	# 1. Did we hit the enemy? (Removed the strict speed limit for damage!)
+	# 1. Did we hit the enemy? 
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
 		
@@ -38,6 +38,10 @@ func _on_body_entered(body):
 	# 2. If we hit the environment (walls, floors)
 	# Freeze the arrow in place safely
 	set_deferred("freeze", true)
+	
+	# --- THE FIX: Disable the collision shape so it doesn't become a ramp ---
+	# Note: If your collision node is named differently, change "CollisionShape2D" to match!
+	$CollisionShape2D.set_deferred("disabled", true)
 
 	# Start the cleanup timer
 	await get_tree().create_timer(4.0).timeout
