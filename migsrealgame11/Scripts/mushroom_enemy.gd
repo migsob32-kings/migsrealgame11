@@ -71,6 +71,22 @@ func _ready():
 	
 	alert_anim.hide()
 
+	# --- SCRIPT-BASED COLLISION FIX ---
+	# 1. Set what this object IS (Layer 3: Enemy)
+	set_collision_layer_value(1, false)
+	set_collision_layer_value(2, false)
+	set_collision_layer_value(3, true) 
+	
+	# 2. Set what this object COLLIDES WITH 
+	set_collision_mask_value(1, true)  # Bumps into World (Layer 1)
+	set_collision_mask_value(2, true)  # Bumps into Player (Layer 2)
+	set_collision_mask_value(3, false) # IGNORES other Enemies (Layer 3)
+	
+	# 3. Make sure Raycasts also ignore other enemies
+	ledge_check.set_collision_mask_value(3, false)
+	wall_check.set_collision_mask_value(3, false)
+
+
 func _physics_process(delta):
 	if !is_on_floor():
 		velocity.y += gravity * delta

@@ -601,12 +601,10 @@ position = Vector2(0, -15)
 shape = SubResource("CapsuleShape2D_uyflu")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, -32)
+position = Vector2(0, -32.5319)
 sprite_frames = SubResource("SpriteFrames_rlr07")
-animation = &"attack"
+animation = &"idle"
 autoplay = "idle"
-frame = 7
-frame_progress = 0.660809
 flip_h = true
 
 [node name="VisionArea" type="Area2D" parent="."]
