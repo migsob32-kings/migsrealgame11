@@ -1,14 +1,16 @@
 extends CharacterBody2D
 
-# --- NEW: Health System (50 health / 10 damage per hit = 5 hits!) ---
+# --- Health System ---
 @export var max_health: int = 50
 var health: int = max_health
-# --------------------------------------------------------------------
+
+# --- Respawn System ---
+var respawn_position: Vector2
+var is_respawning: bool = false # Prevents accidental pot deposits on death!
 
 # --- Tweak the left one in the Inspector, leave the right one at 0! ---
 @export var right_facing_position: float = 0.0
 @export var left_facing_position: float = -10.0 
-# ---------------------------------------------------------------------------
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
@@ -68,7 +70,14 @@ var inventory = {
 	"mushroom": 0
 }
 
+# --- Temporary UI Variables ---
+var ui_canvas: CanvasLayer
+var mushroom_label: Label
+
 func _ready():
+	# --- Set Initial Respawn Point ---
+	respawn_position = global_position
+	
 	if sprite:
 		if sprite.has_node("TrajectoryContainer"):
 			trajectory_container = sprite.get_node("TrajectoryContainer")
@@ -86,6 +95,17 @@ func _ready():
 		trajectory_line.hide()
 
 		sprite.animation_finished.connect(_on_animation_finished)
+
+	# --- Build the Temporary UI ---
+	ui_canvas = CanvasLayer.new()
+	add_child(ui_canvas)
+	
+	mushroom_label = Label.new()
+	mushroom_label.text = "Mushrooms: 0 / 3"
+	mushroom_label.add_theme_font_size_override("font_size", 32)
+	mushroom_label.position = Vector2(20, 20) 
+	
+	ui_canvas.add_child(mushroom_label)
 
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
@@ -255,7 +275,6 @@ func look_at_mouse():
 
 	sprite.flip_h = mouse_pos.x < global_position.x
 	
-	# Shift the sprite position to maintain alignment based on flip
 	if sprite.flip_h:
 		sprite.position.x = left_facing_position
 	else:
@@ -265,14 +284,12 @@ func look_at_mouse():
 
 	var aim_dir = get_aim_direction()
 
-	# --- FIXED: Safely extract just the tilt angle so the player never flips upside down ---
 	var tilt_angle = atan2(aim_dir.y, abs(aim_dir.x))
 
 	if sprite.flip_h:
 		sprite.rotation = -tilt_angle
 	else:
 		sprite.rotation = tilt_angle
-	# ---------------------------------------------------------------------------------------
 
 func update_trajectory():
 	var aim_dir = get_aim_direction()
@@ -341,11 +358,10 @@ func _on_animation_finished():
 	if sprite.animation == "beginfire":
 		beginfire_finished = true
 
-# --- NEW: Damage and Death Functions ---
+# --- Damage and Death Functions ---
 func take_damage(amount: int):
 	health -= amount
 	
-	# Flash the player red so we know they got hit!
 	if sprite:
 		var tween = create_tween()
 		sprite.modulate = Color(1, 0, 0)
@@ -355,5 +371,63 @@ func take_damage(amount: int):
 		die()
 
 func die():
-	# Resets the current level completely!
-	get_tree().reload_current_scene()
+	health = max_health
+	velocity = Vector2.ZERO
+	global_position = respawn_position
+	
+	# Give the player 1 second where they don't interact with the pot
+	is_respawning = true
+	await get_tree().create_timer(1.0).timeout
+	is_respawning = false
+
+# --- Inventory and UI Functions ---
+func add_to_inventory(item: String, amount: int):
+	if inventory.has(item):
+		inventory[item] += amount
+	else:
+		inventory[item] = amount
+		
+	if item == "mushroom":
+		update_ui()
+
+func get_inventory_count(item: String) -> int:
+	if inventory.has(item):
+		return inventory[item]
+	return 0
+
+func update_ui():
+	if mushroom_label:
+		mushroom_label.text = "Mushrooms: " + str(inventory["mushroom"]) + " / 3"
+		
+		if inventory["mushroom"] >= 3:
+			mushroom_label.modulate = Color(0.2, 0.8, 0.2)
+		else:
+			mushroom_label.modulate = Color.WHITE
+
+func set_respawn_point(new_pos: Vector2):
+	respawn_position = new_pos
+
+func drop_all_items(item: String) -> int:
+	var dropped_amount = 0
+	
+	if inventory.has(item):
+		dropped_amount = inventory[item]
+		inventory[item] = 0 # Reset to 0
+		
+	if item == "mushroom":
+		update_ui()
+		
+	return dropped_amount
+
+func drop_amount(item: String, amount: int) -> int:
+	var actual_drop = 0
+	
+	if inventory.has(item):
+		# Only drop what we have, up to the amount requested
+		actual_drop = min(inventory[item], amount)
+		inventory[item] -= actual_drop
+		
+	if item == "mushroom":
+		update_ui()
+		
+	return actual_drop

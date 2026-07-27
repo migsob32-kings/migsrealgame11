@@ -6,6 +6,7 @@ var state = State.PATROL
 # --- Health System ---
 @export var max_health := 20
 var health := max_health
+var is_dead := false # --- NEW: Prevents double-deaths! ---
 
 # --- Drop System ---
 @export var drop_scene: PackedScene # Drag your mushroompickup.tscn here in the editor!
@@ -86,12 +87,11 @@ func _ready():
 	ledge_check.set_collision_mask_value(3, false)
 	wall_check.set_collision_mask_value(3, false)
 
-
 func _physics_process(delta):
 	if !is_on_floor():
 		velocity.y += gravity * delta
 
-	if is_stunned:
+	if is_stunned or is_dead:
 		move_and_slide()
 		return
 
@@ -205,7 +205,7 @@ func _start_attack():
 	await get_tree().create_timer(attack_hit_delay).timeout
 	
 	# 2. Safety Check: Make sure the enemy wasn't stunned or killed during the wind-up
-	if is_attacking:
+	if is_attacking and not is_dead:
 		hitbox.monitoring = true # Turn the hitbox ON at the exact moment of impact!
 	
 	# 3. Wait for the rest of the animation to finish
@@ -279,8 +279,17 @@ func _on_hitbox_body_entered(body):
 		if body.has_method("take_damage"):
 			body.take_damage(attack_damage)
 
+# --- FIXED: Damage and Death Sequence ---
 func take_damage(amount, _attacker_x = null):
+	# 1. If already dying, ignore further hits
+	if is_dead:
+		return
+		
 	health -= amount
+	
+	# 2. Check for death instantly
+	if health <= 0:
+		is_dead = true
 	
 	is_stunned = true
 	is_attacking = false
@@ -296,10 +305,13 @@ func take_damage(amount, _attacker_x = null):
 	tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
 	
 	await sprite.animation_finished
-	is_stunned = false
 	
-	if health <= 0:
+	# 3. Only die after the animation if we were marked dead
+	if is_dead:
 		die()
+		return
+		
+	is_stunned = false
 
 func die():
 	if drop_scene != null:
