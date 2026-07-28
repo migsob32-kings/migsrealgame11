@@ -7158,3 +7158,16 @@ position = Vector2(385, -23)
 
 [node name="Mushrooms4" parent="Mushrooms" instance=ExtResource("10_vtaks")]
 position = Vector2(585, -106)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -1093.0
+offset_top = -220.0
+offset_right = -621.0
+offset_bottom = -41.0
+text = "welcome, kill mushrooms and deposit it in the stews to make
+respawn point, please tell if any bugs
+
+a&d to move 
+space to jump
+left click and move mouse around for shooting
+you can scroll in and out"

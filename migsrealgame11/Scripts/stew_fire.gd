@@ -24,24 +24,28 @@ func _on_body_entered(body):
 			stored_mushrooms += dropped_amount
 			
 		# 4. Logic for saving and popups
-		if dropped_amount > 0:
-			# Player deposited new mushrooms
+		if stored_mushrooms >= max_capacity:
+			# The pot is FULL! We can finally set or update the checkpoint.
 			if body.has_method("set_respawn_point"):
 				body.set_respawn_point(global_position)
-			show_popup_message("Respawn Set!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
+			
+			if dropped_amount > 0:
+				# They just dropped the final mushrooms needed
+				show_popup_message("Respawn Set!\nPot is Full (3/3)")
+			else:
+				# They walked past an already full pot
+				show_popup_message("Checkpoint Saved!\nPot is Full (3/3)")
+				
+		elif dropped_amount > 0:
+			# Player deposited some mushrooms, but the pot is not full yet (1/3 or 2/3)
+			show_popup_message("Mushrooms Added!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
 			
 		elif stored_mushrooms > 0:
-			# Pot is already active, so they can update their checkpoint for free!
-			if body.has_method("set_respawn_point"):
-				body.set_respawn_point(global_position)
-				
-			if stored_mushrooms >= max_capacity:
-				show_popup_message("Checkpoint Saved!\nPot is Full (3/3)")
-			else:
-				show_popup_message("Checkpoint Saved!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
-				
+			# Player didn't deposit anything, and the pot isn't full yet
+			show_popup_message("Need more to save!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
+			
 		else:
-			# Pot is empty, and player has 0 mushrooms
+			# Pot is empty, and player dropped 0 mushrooms
 			show_popup_message("Empty pockets!\nNeed mushrooms to start stew.")
 
 func show_popup_message(message: String):
