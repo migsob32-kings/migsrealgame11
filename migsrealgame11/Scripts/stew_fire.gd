@@ -1,5 +1,10 @@
 extends Area2D
 
+# Export variables so you can assign these nodes in the Inspector
+@export var pot_sprite: CanvasItem       # Drag your Pot's Sprite node here
+@export var deposit_particles: Node2D    # Drag your small GPUParticles2D here
+@export var full_particles: Node2D       # Drag your big GPUParticles2D here
+
 var stored_mushrooms: int = 0
 var max_capacity: int = 3
 
@@ -22,6 +27,13 @@ func _on_body_entered(body):
 		if space_left > 0 and body.has_method("drop_amount"):
 			dropped_amount = body.drop_amount("mushroom", space_left)
 			stored_mushrooms += dropped_amount
+			
+		# --- NEW: VISUAL EFFECTS LOGIC ---
+		if dropped_amount > 0:
+			if stored_mushrooms >= max_capacity:
+				play_full_effect()
+			else:
+				play_deposit_effect()
 			
 		# 4. Logic for saving and popups
 		if stored_mushrooms >= max_capacity:
@@ -47,6 +59,27 @@ func _on_body_entered(body):
 		else:
 			# Pot is empty, and player dropped 0 mushrooms
 			show_popup_message("Empty pockets!\nNeed mushrooms to start stew.")
+
+# --- NEW: EFFECT FUNCTIONS ---
+
+func play_deposit_effect():
+	if deposit_particles:
+		# Using restart() ensures the particle plays from the beginning if it's set to One Shot
+		deposit_particles.restart() 
+
+func play_full_effect():
+	if full_particles:
+		full_particles.restart()
+		
+	if pot_sprite:
+		var tween = create_tween()
+		# Tween to green quickly (0.3 seconds)
+		tween.tween_property(pot_sprite, "modulate", Color.GREEN, 0.3)
+		# Hold the green color for a bit (1.5 seconds)
+		tween.tween_interval(1.5)
+		# Fade back to normal/white (1.0 seconds)
+		tween.tween_property(pot_sprite, "modulate", Color.WHITE, 1.0)
+
 
 func show_popup_message(message: String):
 	var label = Label.new()

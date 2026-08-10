@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://d0m2h77tci37"]
+[gd_scene load_steps=48 format=3 uid="uid://d0m2h77tci37"]
 
 [ext_resource type="Script" uid="uid://dn67cfcoh7kji" path="res://Scripts/stew_fire.gd" id="1_i34a1"]
 [ext_resource type="Texture2D" uid="uid://tsc87o5abiav" path="res://Sprites/Campfire with food sheet.png" id="1_jl3eh"]
@@ -294,8 +294,21 @@ animations = [{
 [sub_resource type="CircleShape2D" id="CircleShape2D_jl3eh"]
 radius = 24.0208
 
-[node name="Stewpot" type="Area2D"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_i34a1"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_i34a1"]
+particle_flag_disable_z = true
+gravity = Vector3(0, -98, 0)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_xal5g"]
+particle_flag_disable_z = true
+gravity = Vector3(0, 98, 0)
+
+[node name="Stewpot" type="Area2D" node_paths=PackedStringArray("pot_sprite", "deposit_particles", "full_particles")]
 script = ExtResource("1_i34a1")
+pot_sprite = NodePath("StewFire")
+deposit_particles = NodePath("DepositParticles")
+full_particles = NodePath("Fullparticles")
 
 [node name="StewFire" type="AnimatedSprite2D" parent="."]
 position = Vector2(9.53674e-07, -9.53674e-07)
@@ -306,3 +319,10 @@ frame_progress = 0.229081
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_jl3eh")
+
+[node name="DepositParticles" type="GPUParticles2D" parent="."]
+texture = SubResource("ViewportTexture_i34a1")
+process_material = SubResource("ParticleProcessMaterial_i34a1")
+
+[node name="Fullparticles" type="GPUParticles2D" parent="."]
+process_material = SubResource("ParticleProcessMaterial_xal5g")

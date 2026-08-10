@@ -257,7 +257,7 @@ left_facing_position = -12.0
 arrow_scene = ExtResource("2_dqkch")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(13, -56)
+position = Vector2(13, -55)
 scale = Vector2(1.7888, 1.72)
 sprite_frames = SubResource("SpriteFrames_ur7pv")
 animation = &"endfire"
