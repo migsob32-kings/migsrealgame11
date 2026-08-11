@@ -3,7 +3,6 @@ extends Area2D
 # Export variables so you can assign these nodes in the Inspector
 @export var pot_sprite: CanvasItem       # Drag your Pot's Sprite node here
 @export var deposit_particles: Node2D    # Drag your small GPUParticles2D here
-@export var full_particles: Node2D       # Drag your big GPUParticles2D here
 
 var stored_mushrooms: int = 0
 var max_capacity: int = 3
@@ -30,10 +29,12 @@ func _on_body_entered(body):
 			
 		# --- NEW: VISUAL EFFECTS LOGIC ---
 		if dropped_amount > 0:
+			# Always play bubbles when mushrooms are deposited
+			play_deposit_effect()
+			
+			# If that deposit filled the pot, also turn it green
 			if stored_mushrooms >= max_capacity:
-				play_full_effect()
-			else:
-				play_deposit_effect()
+				play_full_color_effect()
 			
 		# 4. Logic for saving and popups
 		if stored_mushrooms >= max_capacity:
@@ -64,13 +65,16 @@ func _on_body_entered(body):
 
 func play_deposit_effect():
 	if deposit_particles:
-		# Using restart() ensures the particle plays from the beginning if it's set to One Shot
 		deposit_particles.restart() 
-
-func play_full_effect():
-	if full_particles:
-		full_particles.restart()
+		deposit_particles.emitting = true
 		
+		# Wait exactly 3 seconds
+		await get_tree().create_timer(3.0).timeout
+		
+		# Force it to stop emitting and dip
+		deposit_particles.emitting = false
+
+func play_full_color_effect():
 	if pot_sprite:
 		var tween = create_tween()
 		# Tween to green quickly (0.3 seconds)

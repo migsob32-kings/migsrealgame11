@@ -592,7 +592,7 @@ animations = [{
 radius = 7.46578
 
 [node name="MushroomEnemy" type="CharacterBody2D"]
-scale = Vector2(1.88, 1.88)
+scale = Vector2(2.0039, 1.88)
 script = ExtResource("1_wuyt4")
 drop_scene = ExtResource("2_gtvyl")
 
@@ -601,7 +601,7 @@ position = Vector2(0, -15)
 shape = SubResource("CapsuleShape2D_uyflu")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, -32.5319)
+position = Vector2(0, -31.9149)
 sprite_frames = SubResource("SpriteFrames_rlr07")
 animation = &"idle"
 autoplay = "idle"
