@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://fyrck6j2dduy"]
+
+[ext_resource type="Script" uid="uid://ddy6xrw5m4o54" path="res://Scripts/hud.gd" id="1_5ysmq"]
+[ext_resource type="Texture2D" uid="uid://cu4y1w4xqlsu3" path="res://Sprites/HUD/Hp bar.png" id="1_oo0fn"]
+[ext_resource type="Texture2D" uid="uid://8hdgr1phb81k" path="res://Sprites/HUD/red bar.png" id="2_5ysmq"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_5ysmq")
+
+[node name="TextureProgressBar" type="TextureProgressBar" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+texture_over = ExtResource("1_oo0fn")
+texture_progress = ExtResource("2_5ysmq")
+texture_progress_offset = Vector2(3.5, 5)

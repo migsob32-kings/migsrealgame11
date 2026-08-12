@@ -1,5 +1,9 @@
 extends CharacterBody2D
 
+# --- Signals for HUD Communication ---
+signal health_changed(new_health, max_health)
+signal mushrooms_changed(count)
+
 # --- Health System ---
 @export var max_health: int = 50
 var health: int = max_health
@@ -8,7 +12,7 @@ var health: int = max_health
 var respawn_position: Vector2
 var is_respawning: bool = false # Prevents accidental pot deposits on death!
 
-# --- Tweak the left one in the Inspector, leave the right one at 0! ---
+# --- Sprite Positioning ---
 @export var right_facing_position: float = 0.0
 @export var left_facing_position: float = -10.0 
 
@@ -70,10 +74,6 @@ var inventory = {
 	"mushroom": 0
 }
 
-# --- Temporary UI Variables ---
-var ui_canvas: CanvasLayer
-var mushroom_label: Label
-
 func _ready():
 	# --- Set Initial Respawn Point ---
 	respawn_position = global_position
@@ -96,16 +96,9 @@ func _ready():
 
 		sprite.animation_finished.connect(_on_animation_finished)
 
-	# --- Build the Temporary UI ---
-	ui_canvas = CanvasLayer.new()
-	add_child(ui_canvas)
-	
-	mushroom_label = Label.new()
-	mushroom_label.text = "Mushrooms: 0 / 3"
-	mushroom_label.add_theme_font_size_override("font_size", 32)
-	mushroom_label.position = Vector2(20, 20) 
-	
-	ui_canvas.add_child(mushroom_label)
+	# --- Initialize HUD ---
+	health_changed.emit(health, max_health)
+	update_ui()
 
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
@@ -178,14 +171,12 @@ func _physics_process(delta):
 			play_animation("idle")
 
 	handle_shooting(delta)
-
 	move_and_slide()
 
 	# Landing check
 	if was_airborne and is_on_floor():
 		if landing_velocity > 500:
 			play_jump_particles()
-
 		landing_velocity = 0
 
 func handle_shooting(_delta):
@@ -222,9 +213,7 @@ func handle_shooting(_delta):
 
 		is_aiming = false
 		is_firing = false
-
 		trajectory_line.hide()
-
 		sprite.rotation = 0
 
 		if trajectory_container:
@@ -233,7 +222,6 @@ func handle_shooting(_delta):
 func play_jump_particles():
 	if sprite and sprite.has_node("GPUParticles2D"):
 		var particles = sprite.get_node("GPUParticles2D")
-
 		particles.global_position = global_position + Vector2(0, 0)
 
 		var mat = particles.process_material
@@ -245,7 +233,6 @@ func play_jump_particles():
 			mat.gravity = Vector3(0, 250, 0)
 
 		particles.modulate = Color(0.42, 0.30, 0.18)
-
 		particles.restart()
 		particles.emitting = true
 
@@ -258,12 +245,10 @@ func get_aim_direction() -> Vector2:
 		return last_aim_direction
 
 	var facing_left = sprite.flip_h
-
 	var angle = atan2(to_mouse.y, abs(to_mouse.x))
 	angle = clamp(angle, deg_to_rad(MAX_AIM_UP), deg_to_rad(MAX_AIM_DOWN))
 
 	var dir = Vector2(cos(angle), sin(angle))
-
 	if facing_left:
 		dir.x = -dir.x
 
@@ -272,7 +257,6 @@ func get_aim_direction() -> Vector2:
 
 func look_at_mouse():
 	var mouse_pos = get_global_mouse_position()
-
 	sprite.flip_h = mouse_pos.x < global_position.x
 	
 	if sprite.flip_h:
@@ -281,9 +265,7 @@ func look_at_mouse():
 		sprite.position.x = right_facing_position
 
 	update_trajectory_container_position()
-
 	var aim_dir = get_aim_direction()
-
 	var tilt_angle = atan2(aim_dir.y, abs(aim_dir.x))
 
 	if sprite.flip_h:
@@ -295,14 +277,12 @@ func update_trajectory():
 	var aim_dir = get_aim_direction()
 	var velocity_vector = aim_dir * SHOOT_POWER
 	var effective_gravity = gravity * ARROW_GRAVITY_SCALE
-
 	var points = []
 
 	for i in range(TRAJECTORY_POINTS):
 		var time = i * TRAJECTORY_TIME_STEP
 		var x = velocity_vector.x * time
 		var y = velocity_vector.y * time + (0.5 * effective_gravity * time * time)
-
 		points.append(Vector2(x, y))
 
 	if sprite and trajectory_container:
@@ -315,12 +295,9 @@ func shoot_arrow():
 		return
 
 	can_shoot = false
-
 	var arrow = arrow_scene.instantiate()
 	get_parent().add_child(arrow)
-
 	arrow.global_position = get_bow_position()
-
 	var aim_dir = get_aim_direction()
 
 	arrow.linear_velocity = aim_dir * SHOOT_POWER
@@ -333,7 +310,6 @@ func shoot_arrow():
 func get_bow_position() -> Vector2:
 	if sprite.has_node("BowMarker"):
 		return sprite.get_node("BowMarker").global_position
-
 	return global_position
 
 func update_trajectory_container_position():
@@ -362,6 +338,9 @@ func _on_animation_finished():
 func take_damage(amount: int):
 	health -= amount
 	
+	# Send the signal to the HUD
+	health_changed.emit(health, max_health)
+	
 	if sprite:
 		var tween = create_tween()
 		sprite.modulate = Color(1, 0, 0)
@@ -372,6 +351,10 @@ func take_damage(amount: int):
 
 func die():
 	health = max_health
+	
+	# Update the HUD on respawn!
+	health_changed.emit(health, max_health)
+	
 	velocity = Vector2.ZERO
 	global_position = respawn_position
 	
@@ -396,13 +379,8 @@ func get_inventory_count(item: String) -> int:
 	return 0
 
 func update_ui():
-	if mushroom_label:
-		mushroom_label.text = "Mushrooms: " + str(inventory["mushroom"]) + " / 3"
-		
-		if inventory["mushroom"] >= 3:
-			mushroom_label.modulate = Color(0.2, 0.8, 0.2)
-		else:
-			mushroom_label.modulate = Color.WHITE
+	# Shouts out to the HUD that mushrooms changed!
+	mushrooms_changed.emit(get_inventory_count("mushroom"))
 
 func set_respawn_point(new_pos: Vector2):
 	respawn_position = new_pos
