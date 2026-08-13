@@ -1,4 +1,4 @@
-[gd_scene load_steps=91 format=3 uid="uid://bpacjop2ubdt0"]
+[gd_scene load_steps=92 format=3 uid="uid://bpacjop2ubdt0"]
 
 [ext_resource type="Script" uid="uid://4c4exv0ag7bw" path="res://Scripts/mushroom_enemy.gd" id="1_wuyt4"]
 [ext_resource type="Texture2D" uid="uid://dahy0crgiewgx" path="res://Sprites/Mushroom without VFX/Mushroom-Idle.png" id="2_88g1x"]
@@ -589,7 +589,10 @@ animations = [{
 }]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_gtvyl"]
-radius = 7.46578
+radius = 8.30321
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_pgrba"]
+radius = 36.9839
 
 [node name="MushroomEnemy" type="CharacterBody2D"]
 scale = Vector2(2.0039, 1.88)
@@ -610,7 +613,6 @@ flip_h = true
 [node name="VisionArea" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="VisionArea"]
-visible = false
 position = Vector2(0, -14.8936)
 shape = SubResource("CircleShape2D_sluk2")
 
@@ -636,5 +638,15 @@ frame_progress = 1.0
 [node name="HitboxArea" type="Area2D" parent="."]
 
 [node name="HitboxArea" type="CollisionShape2D" parent="HitboxArea"]
-position = Vector2(27.1277, -7.44681)
+position = Vector2(26.9475, -8.51064)
 shape = SubResource("CircleShape2D_gtvyl")
+
+[node name="AttackRangeArea" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackRangeArea"]
+position = Vector2(0, -14.8936)
+shape = SubResource("CircleShape2D_pgrba")
+
+[connection signal="body_shape_entered" from="AttackRangeArea" to="." method="_on_attack_range_area_body_shape_entered"]

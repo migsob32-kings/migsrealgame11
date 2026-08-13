@@ -75,6 +75,9 @@ var inventory = {
 }
 
 func _ready():
+	# --- MAKE ENEMIES HATE YOU ---
+	add_to_group("player")
+	
 	# --- Set Initial Respawn Point ---
 	respawn_position = global_position
 	

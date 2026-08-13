@@ -6,10 +6,10 @@ var state = State.PATROL
 # --- Health System ---
 @export var max_health := 20
 var health := max_health
-var is_dead := false # --- NEW: Prevents double-deaths! ---
+var is_dead := false 
 
 # --- Drop System ---
-@export var drop_scene: PackedScene # Drag your mushroompickup.tscn here in the editor!
+@export var drop_scene: PackedScene 
 
 @export var patrol_speed := 65.0
 @export var chase_speed := 145.0
@@ -19,10 +19,11 @@ var is_dead := false # --- NEW: Prevents double-deaths! ---
 @export var chase_duration := 5.0
 @export var stop_jump_distance := 40.0
 
-@export var attack_range := 30.0
+# --- FIX 1: Range bumped to 70.0 so they swing before bumping! ---
+@export var attack_range := 70.0 
 @export var attack_cooldown := 1.0
-@export var attack_damage := 10 # How much damage the enemy deals
-@export var attack_hit_delay := 0.4 # Configurable delay before hitbox activates
+@export var attack_damage := 10 
+@export var attack_hit_delay := 0.4 
 
 @export var ledge_grace_time := 0.15
 @export var max_wall_stuck_time := 0.8
@@ -59,9 +60,7 @@ func _ready():
 	vision_area.body_entered.connect(_on_vision_entered)
 	vision_area.body_exited.connect(_on_vision_exited)
 	
-	# Connect the hitbox signal
 	hitbox.body_entered.connect(_on_hitbox_body_entered)
-	# Turn it off by default so it doesn't hurt the player while walking
 	hitbox.monitoring = false
 
 	ledge_start_pos = ledge_check.position
@@ -69,21 +68,17 @@ func _ready():
 
 	ledge_check.exclude_parent = true
 	wall_check.exclude_parent = true
-	
 	alert_anim.hide()
 
 	# --- SCRIPT-BASED COLLISION FIX ---
-	# 1. Set what this object IS (Layer 3: Enemy)
 	set_collision_layer_value(1, false)
 	set_collision_layer_value(2, false)
 	set_collision_layer_value(3, true) 
 	
-	# 2. Set what this object COLLIDES WITH 
-	set_collision_mask_value(1, true)  # Bumps into World (Layer 1)
-	set_collision_mask_value(2, true)  # Bumps into Player (Layer 2)
-	set_collision_mask_value(3, false) # IGNORES other Enemies (Layer 3)
+	set_collision_mask_value(1, true)  
+	set_collision_mask_value(2, true)  
+	set_collision_mask_value(3, false) 
 	
-	# 3. Make sure Raycasts also ignore other enemies
 	ledge_check.set_collision_mask_value(3, false)
 	wall_check.set_collision_mask_value(3, false)
 
@@ -168,16 +163,19 @@ func _chase(delta):
 	var diff = player.global_position.x - global_position.x
 	var distance = abs(diff)
 
+	# Check for attack FIRST before changing movement direction
+	if distance <= attack_range and attack_timer <= 0:
+		if sign(diff) != 0:
+			direction = sign(diff)
+		_start_attack()
+		return
+
 	if distance > 12:
 		var new_dir = sign(diff)
 		if new_dir != direction and !turn_locked:
 			direction = new_dir
 			direction_cooldown = 0.25
 			turn_locked = true
-
-	if distance <= attack_range and attack_timer <= 0:
-		_start_attack()
-		return
 
 	velocity.x = direction * chase_speed
 
@@ -195,23 +193,23 @@ func _chase(delta):
 			velocity.y = jump_velocity
 			jump_cooldown = 0.8
 
+# --- FIX 2: Prevents the Double-Await Deadlock completely! ---
 func _start_attack():
 	is_attacking = true
 	velocity.x = 0
 	attack_timer = attack_cooldown
 	sprite.play("attack")
 	
-	# 1. Wait for your configured delay (the wind-up of the attack)
-	await get_tree().create_timer(attack_hit_delay).timeout
+	# NEW: A background timer that turns the hitbox on without freezing the script!
+	get_tree().create_timer(attack_hit_delay).timeout.connect(func():
+		if is_attacking and not is_dead:
+			hitbox.monitoring = true
+	)
 	
-	# 2. Safety Check: Make sure the enemy wasn't stunned or killed during the wind-up
-	if is_attacking and not is_dead:
-		hitbox.monitoring = true # Turn the hitbox ON at the exact moment of impact!
-	
-	# 3. Wait for the rest of the animation to finish
+	# Now we only wait for ONE thing: the animation to finish
 	await sprite.animation_finished
 	
-	# 4. Turn the hitbox OFF when the attack ends!
+	# Turn it off and reset!
 	hitbox.monitoring = false
 	is_attacking = false
 
@@ -232,7 +230,6 @@ func _update_raycasts():
 	ledge_check.target_position.x = abs(ledge_check.target_position.x) * direction
 	wall_check.target_position.x = abs(wall_check.target_position.x) * direction
 	
-	# --- FIXED: Flips the whole hitbox node based on direction! ---
 	if hitbox:
 		hitbox.scale.x = direction
 
@@ -273,21 +270,17 @@ func _show_alert():
 	await alert_anim.animation_finished
 	alert_anim.hide() 
 
-# --- When the hitbox touches a body during the attack ---
 func _on_hitbox_body_entered(body):
 	if body.is_in_group("player"):
 		if body.has_method("take_damage"):
 			body.take_damage(attack_damage)
 
-# --- FIXED: Damage and Death Sequence ---
 func take_damage(amount, _attacker_x = null):
-	# 1. If already dying, ignore further hits
 	if is_dead:
 		return
 		
 	health -= amount
 	
-	# 2. Check for death instantly
 	if health <= 0:
 		is_dead = true
 	
@@ -295,7 +288,6 @@ func take_damage(amount, _attacker_x = null):
 	is_attacking = false
 	velocity.x = 0
 	
-	# Safety measure: if we get stunned mid-attack, turn the hitbox off!
 	hitbox.monitoring = false
 	
 	sprite.play("hit")
@@ -306,7 +298,6 @@ func take_damage(amount, _attacker_x = null):
 	
 	await sprite.animation_finished
 	
-	# 3. Only die after the animation if we were marked dead
 	if is_dead:
 		die()
 		return

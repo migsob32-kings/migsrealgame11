@@ -7994,6 +7994,9 @@ position = Vector2(585, -106)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("7_ir15t")]
 position = Vector2(6863, -410)
+right_facing_position = 0.0
+left_facing_position = -10.0
+arrow_scene = null
 
 [node name="CanvasLayer" type="CanvasLayer" parent="CharacterBody2D"]
 layer = -2
