@@ -28,6 +28,9 @@ var is_dead := false
 @export var ledge_grace_time := 0.15
 @export var max_wall_stuck_time := 0.8
 
+# --- NEW: Soft Collision ---
+@export var repel_force := 45.0
+
 var direction := 1
 var player: Node2D = null
 
@@ -53,8 +56,9 @@ var wall_start_pos := Vector2.ZERO
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var alert_anim: AnimatedSprite2D = $Alert/AlertAnimation
 
-# --- The Hitbox ---
+# --- Areas ---
 @onready var hitbox: Area2D = $HitboxArea
+@onready var soft_collision: Area2D = $SoftCollisionArea
 
 func _ready():
 	vision_area.body_entered.connect(_on_vision_entered)
@@ -81,6 +85,12 @@ func _ready():
 	
 	ledge_check.set_collision_mask_value(3, false)
 	wall_check.set_collision_mask_value(3, false)
+	
+	# --- NEW: Setup Soft Collision Area ---
+	if soft_collision:
+		soft_collision.set_collision_layer_value(1, false) 
+		soft_collision.set_collision_mask_value(1, false)  
+		soft_collision.set_collision_mask_value(3, true)   
 
 func _physics_process(delta):
 	if !is_on_floor():
@@ -109,6 +119,9 @@ func _physics_process(delta):
 
 	_update_raycasts()
 	_update_animation()
+
+	# --- NEW: Apply our push before moving ---
+	_apply_soft_collision()
 
 	move_and_slide()
 
@@ -245,6 +258,27 @@ func _update_animation():
 	else:
 		if sprite.animation != "idle":
 			sprite.play("idle")
+
+func _apply_soft_collision():
+	if not soft_collision: 
+		return
+		
+	var push_force = 0.0
+	
+	# Check for any other enemies inside our bubble
+	for body in soft_collision.get_overlapping_bodies():
+		if body != self: # Don't repel from yourself!
+			var diff = global_position.x - body.global_position.x
+			
+			if diff > 0:
+				push_force += repel_force 
+			elif diff < 0:
+				push_force -= repel_force 
+			else:
+				push_force += repel_force if get_instance_id() > body.get_instance_id() else -repel_force
+				
+	# Apply the push vector to our current velocity
+	velocity.x += push_force
 
 func _on_vision_entered(body):
 	if body.is_in_group("player"):

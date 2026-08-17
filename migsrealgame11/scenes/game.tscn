@@ -7965,18 +7965,23 @@ position = Vector2(5463, -578)
 
 [node name="MushroomEnemy2" parent="Enemies" instance=ExtResource("7_kvpfn")]
 position = Vector2(2375, -141)
+drop_scene = null
 
 [node name="MushroomEnemy3" parent="Enemies" instance=ExtResource("7_kvpfn")]
 position = Vector2(1606, -123)
+drop_scene = null
 
 [node name="MushroomEnemy" parent="Enemies" instance=ExtResource("7_kvpfn")]
 position = Vector2(-873, 131)
+drop_scene = null
 
 [node name="MushroomEnemy4" parent="Enemies" instance=ExtResource("7_kvpfn")]
 position = Vector2(4594, 265)
+drop_scene = null
 
 [node name="MushroomEnemy5" parent="Enemies" instance=ExtResource("7_kvpfn")]
 position = Vector2(4851, 267)
+drop_scene = null
 
 [node name="Mushrooms" type="Node2D" parent="."]
 
@@ -7994,9 +7999,6 @@ position = Vector2(585, -106)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("7_ir15t")]
 position = Vector2(6863, -410)
-right_facing_position = 0.0
-left_facing_position = -10.0
-arrow_scene = null
 
 [node name="CanvasLayer" type="CanvasLayer" parent="CharacterBody2D"]
 layer = -2

@@ -11,6 +11,7 @@ script = ExtResource("1_5ysmq")
 offset_right = 40.0
 offset_bottom = 40.0
 scale = Vector2(2, 2)
+fill_mode = 3
 texture_over = ExtResource("1_oo0fn")
 texture_progress = ExtResource("2_5ysmq")
 texture_progress_offset = Vector2(4, 4.2)

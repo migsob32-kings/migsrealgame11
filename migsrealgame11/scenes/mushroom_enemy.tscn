@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://4c4exv0ag7bw" path="res://Scripts/mushroom_enemy.gd" id="1_wuyt4"]
 [ext_resource type="Texture2D" uid="uid://dahy0crgiewgx" path="res://Sprites/Mushroom without VFX/Mushroom-Idle.png" id="2_88g1x"]
 [ext_resource type="Texture2D" uid="uid://c6eq7s43moynj" path="res://Sprites/Mushroom without VFX/Mushroom-Attack.png" id="2_cksih"]
-[ext_resource type="PackedScene" uid="uid://dnur8kdu0w0ex" path="res://scenes/mushroompickup.tscn" id="2_gtvyl"]
 [ext_resource type="Texture2D" uid="uid://rfawdxg5cdni" path="res://Sprites/Mushroom without VFX/Mushroom-Run.png" id="3_88g1x"]
 [ext_resource type="Texture2D" uid="uid://b47gvyyib7wch" path="res://Sprites/Mushroom without VFX/Mushroom-AttackWithStun.png" id="3_xchbw"]
 [ext_resource type="Texture2D" uid="uid://dv7yaedofecqh" path="res://Sprites/Mushroom without VFX/Mushroom-Hit.png" id="4_gtvyl"]
@@ -594,10 +593,12 @@ radius = 8.30321
 [sub_resource type="CircleShape2D" id="CircleShape2D_pgrba"]
 radius = 36.9839
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_xchbw"]
+radius = 12.9856
+
 [node name="MushroomEnemy" type="CharacterBody2D"]
 scale = Vector2(2.0039, 1.88)
 script = ExtResource("1_wuyt4")
-drop_scene = ExtResource("2_gtvyl")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -15)
@@ -648,5 +649,11 @@ collision_mask = 4
 [node name="CollisionShape2D" type="CollisionShape2D" parent="AttackRangeArea"]
 position = Vector2(0, -14.8936)
 shape = SubResource("CircleShape2D_pgrba")
+
+[node name="SoftCollisionArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SoftCollisionArea"]
+position = Vector2(0, -12.766)
+shape = SubResource("CircleShape2D_xchbw")
 
 [connection signal="body_shape_entered" from="AttackRangeArea" to="." method="_on_attack_range_area_body_shape_entered"]

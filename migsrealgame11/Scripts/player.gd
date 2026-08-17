@@ -4,17 +4,21 @@ extends CharacterBody2D
 signal health_changed(new_health, max_health)
 signal mushrooms_changed(count)
 
+# --- HUD Reference ---
+@export var health_bar: TextureProgressBar
+var original_bar_pos: Vector2
+
 # --- Health System ---
 @export var max_health: int = 50
 var health: int = max_health
 
 # --- Respawn System ---
 var respawn_position: Vector2
-var is_respawning: bool = false # Prevents accidental pot deposits on death!
+var is_respawning: bool = false 
 
 # --- Sprite Positioning ---
 @export var right_facing_position: float = 0.0
-@export var left_facing_position: float = -10.0 
+@export var left_facing_position: float = 0.0 
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
@@ -26,7 +30,7 @@ const TRAJECTORY_POINTS = 30
 const TRAJECTORY_TIME_STEP = 0.07
 const TRAJECTORY_WIDTH = 2.5
 const ARROW_GRAVITY_SCALE = 1.0
-const SHOOT_COOLDOWN = 0.05
+const SHOOT_COOLDOWN = 0.15
 
 # Aim
 const MAX_AIM_UP = -35
@@ -53,21 +57,16 @@ var jump_buffer_timer = 0.0
 var double_jump_available = false
 var landing_velocity = 0.0
 
-# Animation
+# Animation & Shooting State
 var is_jumping = false
-
-# Shooting state
 var is_aiming = false
 var is_firing = false
 var beginfire_finished = false
-
 var can_shoot = true
-var shot_locked = false
 
 var last_aim_direction: Vector2 = Vector2.RIGHT
 
 var trajectory_line: Line2D
-var trajectory_container: Node2D
 
 # Inventory
 var inventory = {
@@ -75,33 +74,26 @@ var inventory = {
 }
 
 func _ready():
-	# --- MAKE ENEMIES HATE YOU ---
 	add_to_group("player")
-	
-	# --- Set Initial Respawn Point ---
 	respawn_position = global_position
 	
+	# --- NEW, FOOLPROOF TRAJECTORY SETUP ---
+	trajectory_line = Line2D.new()
+	trajectory_line.width = TRAJECTORY_WIDTH
+	trajectory_line.default_color = Color.RED
+	trajectory_line.top_level = true # Forces the line to draw in global world space!
+	add_child(trajectory_line)
+	trajectory_line.hide()
+
 	if sprite:
-		if sprite.has_node("TrajectoryContainer"):
-			trajectory_container = sprite.get_node("TrajectoryContainer")
-		else:
-			trajectory_container = Node2D.new()
-			trajectory_container.name = "TrajectoryContainer"
-			sprite.add_child(trajectory_container)
-
-		update_trajectory_container_position()
-
-		trajectory_line = Line2D.new()
-		trajectory_line.width = TRAJECTORY_WIDTH
-		trajectory_line.default_color = Color.RED
-		trajectory_container.add_child(trajectory_line)
-		trajectory_line.hide()
-
 		sprite.animation_finished.connect(_on_animation_finished)
 
-	# --- Initialize HUD ---
 	health_changed.emit(health, max_health)
 	update_ui()
+	
+	# --- NEW: Save HUD starting position ---
+	if health_bar:
+		original_bar_pos = health_bar.position
 
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
@@ -117,7 +109,6 @@ func apply_zoom(amount: float):
 func _physics_process(delta):
 	var was_airborne = not is_on_floor()
 
-	# Gravity
 	if not is_on_floor():
 		velocity.y += gravity * delta
 		coyote_timer -= delta
@@ -130,14 +121,12 @@ func _physics_process(delta):
 		is_jumping = false
 		double_jump_available = true
 
-	# Jump buffer
 	if Input.is_action_just_pressed("ui_accept"):
 		jump_buffer_timer = JUMP_BUFFER_TIME
 
 	if jump_buffer_timer > 0:
 		jump_buffer_timer -= delta
 
-	# First jump
 	if jump_buffer_timer > 0 and (is_on_floor() or coyote_timer > 0):
 		velocity.y = JUMP_VELOCITY
 		jump_buffer_timer = 0
@@ -147,7 +136,6 @@ func _physics_process(delta):
 		if not is_aiming and not is_firing:
 			play_animation("jump")
 
-	# Double jump
 	elif Input.is_action_just_pressed("ui_accept") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
 		velocity.y = JUMP_VELOCITY
 		double_jump_available = false
@@ -156,7 +144,6 @@ func _physics_process(delta):
 		if not is_aiming and not is_firing:
 			play_animation("jump")
 
-	# Movement
 	var direction = Input.get_axis("left", "right")
 
 	if direction != 0:
@@ -165,18 +152,17 @@ func _physics_process(delta):
 		if not is_aiming:
 			flip_sprite(direction)
 
-		if not is_aiming and not is_jumping:
+		if not is_aiming and not is_jumping and not is_firing:
 			play_animation("walk")
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED * delta * 8)
 
-		if not is_aiming and not is_jumping:
+		if not is_aiming and not is_jumping and not is_firing:
 			play_animation("idle")
 
 	handle_shooting(delta)
 	move_and_slide()
 
-	# Landing check
 	if was_airborne and is_on_floor():
 		if landing_velocity > 500:
 			play_jump_particles()
@@ -187,12 +173,9 @@ func handle_shooting(_delta):
 		is_aiming = true
 		is_firing = true
 		beginfire_finished = false
-		shot_locked = false
-
-		update_trajectory_container_position()
+		
 		update_trajectory()
 		trajectory_line.show()
-
 		play_animation("beginfire")
 
 	elif Input.is_action_pressed("shoot") and is_aiming:
@@ -200,27 +183,16 @@ func handle_shooting(_delta):
 			play_animation("holdfire")
 
 		look_at_mouse()
-		update_trajectory_container_position()
 		update_trajectory()
-
 		velocity.x *= 0.5
 
-	if Input.is_action_just_released("shoot") and is_aiming and not shot_locked:
-		shot_locked = true
-		play_animation("endfire")
-
-		await get_tree().create_timer(0.3).timeout
-
-		if can_shoot:
-			shoot_arrow()
-
+	if Input.is_action_just_released("shoot") and is_aiming:
 		is_aiming = false
-		is_firing = false
 		trajectory_line.hide()
 		sprite.rotation = 0
-
-		if trajectory_container:
-			trajectory_container.rotation = 0
+		
+		play_animation("endfire")
+		shoot_arrow()
 
 func play_jump_particles():
 	if sprite and sprite.has_node("GPUParticles2D"):
@@ -267,7 +239,6 @@ func look_at_mouse():
 	else:
 		sprite.position.x = right_facing_position
 
-	update_trajectory_container_position()
 	var aim_dir = get_aim_direction()
 	var tilt_angle = atan2(aim_dir.y, abs(aim_dir.x))
 
@@ -282,14 +253,15 @@ func update_trajectory():
 	var effective_gravity = gravity * ARROW_GRAVITY_SCALE
 	var points = []
 
+	var start_pos = get_bow_position() # Using global start position now
+
 	for i in range(TRAJECTORY_POINTS):
 		var time = i * TRAJECTORY_TIME_STEP
 		var x = velocity_vector.x * time
 		var y = velocity_vector.y * time + (0.5 * effective_gravity * time * time)
-		points.append(Vector2(x, y))
-
-	if sprite and trajectory_container:
-		trajectory_container.rotation = -sprite.rotation
+		
+		# Adding the curve directly to the world-space starting position
+		points.append(start_pos + Vector2(x, y))
 
 	trajectory_line.points = points
 
@@ -298,8 +270,10 @@ func shoot_arrow():
 		return
 
 	can_shoot = false
+
 	var arrow = arrow_scene.instantiate()
 	get_parent().add_child(arrow)
+	
 	arrow.global_position = get_bow_position()
 	var aim_dir = get_aim_direction()
 
@@ -311,13 +285,9 @@ func shoot_arrow():
 	can_shoot = true
 
 func get_bow_position() -> Vector2:
-	if sprite.has_node("BowMarker"):
+	if sprite and sprite.has_node("BowMarker"):
 		return sprite.get_node("BowMarker").global_position
 	return global_position
-
-func update_trajectory_container_position():
-	if sprite.has_node("BowMarker") and trajectory_container:
-		trajectory_container.position = sprite.get_node("BowMarker").position
 
 func flip_sprite(direction: float):
 	if direction > 0:
@@ -327,41 +297,47 @@ func flip_sprite(direction: float):
 		sprite.flip_h = true
 		sprite.position.x = left_facing_position
 
-	update_trajectory_container_position()
-
 func play_animation(anim_name: String):
-	if sprite.animation != anim_name:
+	if sprite and sprite.animation != anim_name:
 		sprite.play(anim_name)
 
 func _on_animation_finished():
 	if sprite.animation == "beginfire":
 		beginfire_finished = true
+	elif sprite.animation == "endfire":
+		is_firing = false 
 
 # --- Damage and Death Functions ---
 func take_damage(amount: int):
 	health -= amount
-	
-	# Send the signal to the HUD
 	health_changed.emit(health, max_health)
 	
+	# The player sprite flashes red
 	if sprite:
 		var tween = create_tween()
 		sprite.modulate = Color(1, 0, 0)
 		tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+		
+	# --- NEW: HUD Blinking and Shaking ---
+	if health_bar:
+		var hud_tween = create_tween()
+		health_bar.modulate = Color(1, 0, 0)
+		hud_tween.tween_property(health_bar, "modulate", Color.WHITE, 0.2)
+		
+		var shake_amount = 8.0
+		hud_tween.parallel().tween_property(health_bar, "position", original_bar_pos + Vector2(shake_amount, 0), 0.05)
+		hud_tween.chain().tween_property(health_bar, "position", original_bar_pos - Vector2(shake_amount, 0), 0.05)
+		hud_tween.chain().tween_property(health_bar, "position", original_bar_pos, 0.05)
 	
 	if health <= 0:
 		die()
 
 func die():
 	health = max_health
-	
-	# Update the HUD on respawn!
 	health_changed.emit(health, max_health)
-	
 	velocity = Vector2.ZERO
 	global_position = respawn_position
 	
-	# Give the player 1 second where they don't interact with the pot
 	is_respawning = true
 	await get_tree().create_timer(1.0).timeout
 	is_respawning = false
@@ -382,7 +358,6 @@ func get_inventory_count(item: String) -> int:
 	return 0
 
 func update_ui():
-	# Shouts out to the HUD that mushrooms changed!
 	mushrooms_changed.emit(get_inventory_count("mushroom"))
 
 func set_respawn_point(new_pos: Vector2):
@@ -393,7 +368,7 @@ func drop_all_items(item: String) -> int:
 	
 	if inventory.has(item):
 		dropped_amount = inventory[item]
-		inventory[item] = 0 # Reset to 0
+		inventory[item] = 0
 		
 	if item == "mushroom":
 		update_ui()
@@ -404,7 +379,6 @@ func drop_amount(item: String, amount: int) -> int:
 	var actual_drop = 0
 	
 	if inventory.has(item):
-		# Only drop what we have, up to the amount requested
 		actual_drop = min(inventory[item], amount)
 		inventory[item] -= actual_drop
 		
