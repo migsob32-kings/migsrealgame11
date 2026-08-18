@@ -3,6 +3,7 @@ extends CharacterBody2D
 # --- Signals for HUD Communication ---
 signal health_changed(new_health, max_health)
 signal mushrooms_changed(count)
+signal jumps_changed(current_jumps, max_jumps) 
 
 # --- HUD Reference ---
 @export var health_bar: TextureProgressBar
@@ -11,6 +12,10 @@ var original_bar_pos: Vector2
 # --- Health System ---
 @export var max_health: int = 50
 var health: int = max_health
+
+# --- Jump System ---
+var max_jumps: int = 2 
+var current_jumps: int = max_jumps 
 
 # --- Respawn System ---
 var respawn_position: Vector2
@@ -21,7 +26,7 @@ var is_respawning: bool = false
 @export var left_facing_position: float = 0.0 
 
 const SPEED = 300.0
-const JUMP_VELOCITY = -400.0
+const JUMP_VELOCITY = -500.0
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 # Shooting
@@ -77,11 +82,10 @@ func _ready():
 	add_to_group("player")
 	respawn_position = global_position
 	
-	# --- NEW, FOOLPROOF TRAJECTORY SETUP ---
 	trajectory_line = Line2D.new()
 	trajectory_line.width = TRAJECTORY_WIDTH
 	trajectory_line.default_color = Color.RED
-	trajectory_line.top_level = true # Forces the line to draw in global world space!
+	trajectory_line.top_level = true 
 	add_child(trajectory_line)
 	trajectory_line.hide()
 
@@ -89,9 +93,9 @@ func _ready():
 		sprite.animation_finished.connect(_on_animation_finished)
 
 	health_changed.emit(health, max_health)
+	jumps_changed.emit(current_jumps, max_jumps) 
 	update_ui()
 	
-	# --- NEW: Save HUD starting position ---
 	if health_bar:
 		original_bar_pos = health_bar.position
 
@@ -121,7 +125,8 @@ func _physics_process(delta):
 		is_jumping = false
 		double_jump_available = true
 
-	if Input.is_action_just_pressed("ui_accept"):
+	# Changed "ui_accept" to "jump" based on your Input Map
+	if Input.is_action_just_pressed("jump"):
 		jump_buffer_timer = JUMP_BUFFER_TIME
 
 	if jump_buffer_timer > 0:
@@ -132,14 +137,21 @@ func _physics_process(delta):
 		jump_buffer_timer = 0
 		coyote_timer = 0
 		is_jumping = true
+		
+		current_jumps -= 1
+		jumps_changed.emit(current_jumps, max_jumps)
 
 		if not is_aiming and not is_firing:
 			play_animation("jump")
 
-	elif Input.is_action_just_pressed("ui_accept") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
+	# Changed "ui_accept" to "jump" based on your Input Map
+	elif Input.is_action_just_pressed("jump") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
 		velocity.y = JUMP_VELOCITY
 		double_jump_available = false
 		is_jumping = true
+		
+		current_jumps -= 1
+		jumps_changed.emit(current_jumps, max_jumps)
 
 		if not is_aiming and not is_firing:
 			play_animation("jump")
@@ -164,6 +176,9 @@ func _physics_process(delta):
 	move_and_slide()
 
 	if was_airborne and is_on_floor():
+		current_jumps = max_jumps
+		jumps_changed.emit(current_jumps, max_jumps)
+		
 		if landing_velocity > 500:
 			play_jump_particles()
 		landing_velocity = 0
@@ -253,14 +268,13 @@ func update_trajectory():
 	var effective_gravity = gravity * ARROW_GRAVITY_SCALE
 	var points = []
 
-	var start_pos = get_bow_position() # Using global start position now
+	var start_pos = get_bow_position() 
 
 	for i in range(TRAJECTORY_POINTS):
 		var time = i * TRAJECTORY_TIME_STEP
 		var x = velocity_vector.x * time
 		var y = velocity_vector.y * time + (0.5 * effective_gravity * time * time)
 		
-		# Adding the curve directly to the world-space starting position
 		points.append(start_pos + Vector2(x, y))
 
 	trajectory_line.points = points
@@ -312,22 +326,10 @@ func take_damage(amount: int):
 	health -= amount
 	health_changed.emit(health, max_health)
 	
-	# The player sprite flashes red
 	if sprite:
 		var tween = create_tween()
 		sprite.modulate = Color(1, 0, 0)
 		tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
-		
-	# --- NEW: HUD Blinking and Shaking ---
-	if health_bar:
-		var hud_tween = create_tween()
-		health_bar.modulate = Color(1, 0, 0)
-		hud_tween.tween_property(health_bar, "modulate", Color.WHITE, 0.2)
-		
-		var shake_amount = 8.0
-		hud_tween.parallel().tween_property(health_bar, "position", original_bar_pos + Vector2(shake_amount, 0), 0.05)
-		hud_tween.chain().tween_property(health_bar, "position", original_bar_pos - Vector2(shake_amount, 0), 0.05)
-		hud_tween.chain().tween_property(health_bar, "position", original_bar_pos, 0.05)
 	
 	if health <= 0:
 		die()
