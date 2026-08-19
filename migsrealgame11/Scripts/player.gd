@@ -334,6 +334,21 @@ func take_damage(amount: int):
 	if health <= 0:
 		die()
 
+func heal(amount: int):
+	if health < max_health:
+		health += amount
+		# Prevent health from going over the maximum limit
+		if health > max_health:
+			health = max_health
+			
+		health_changed.emit(health, max_health)
+		
+		# Optional: Add a green flash just like your red damage flash!
+		if sprite:
+			var tween = create_tween()
+			sprite.modulate = Color(0, 1, 0) # Green color
+			tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+
 func die():
 	health = max_health
 	health_changed.emit(health, max_health)

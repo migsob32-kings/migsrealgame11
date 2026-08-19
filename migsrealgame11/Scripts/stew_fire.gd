@@ -1,11 +1,13 @@
 extends Area2D
 
 # Export variables so you can assign these nodes in the Inspector
-@export var pot_sprite: CanvasItem       # Drag your Pot's Sprite node here
-@export var deposit_particles: Node2D    # Drag your small GPUParticles2D here
+@export var pot_sprite: CanvasItem
+@export var deposit_particles: Node2D
+@export var stew_scene: PackedScene
 
 var stored_mushrooms: int = 0
 var max_capacity: int = 3
+var stew_ready: bool = false # --- NEW: Prevents double-spawning glitches ---
 
 func _ready():
 	if not body_entered.is_connected(_on_body_entered):
@@ -14,74 +16,62 @@ func _ready():
 func _on_body_entered(body):
 	if body.name == "Player" or body.is_in_group("player"):
 		
-		# 1. Ignore the player if they literally just respawned here!
+		# 1. Ignore the player if they literally just respawned here
 		if body.get("is_respawning") == true:
 			return 
 			
-		# 2. Check how much space the pot has left
+		# 2. If the stew is already made, do nothing else
+		if stew_ready:
+			return
+			
+		# 3. Check how much space the pot has left
 		var space_left = max_capacity - stored_mushrooms
 		var dropped_amount = 0
 		
-		# 3. Only take mushrooms if there is space
+		# 4. Only take mushrooms if there is space
 		if space_left > 0 and body.has_method("drop_amount"):
 			dropped_amount = body.drop_amount("mushroom", space_left)
 			stored_mushrooms += dropped_amount
 			
-		# --- NEW: VISUAL EFFECTS LOGIC ---
+		# --- VISUAL EFFECTS & LOGIC ---
 		if dropped_amount > 0:
-			# Always play bubbles when mushrooms are deposited
 			play_deposit_effect()
 			
-			# If that deposit filled the pot, also turn it green
-			if stored_mushrooms >= max_capacity:
-				play_full_color_effect()
+		# 5. Check if it JUST reached max capacity
+		if stored_mushrooms >= max_capacity and not stew_ready:
+			stew_ready = true # Lock the pot so it can never trigger this twice
 			
-		# 4. Logic for saving and popups
-		if stored_mushrooms >= max_capacity:
-			# The pot is FULL! We can finally set or update the checkpoint.
 			if body.has_method("set_respawn_point"):
 				body.set_respawn_point(global_position)
 			
-			if dropped_amount > 0:
-				# They just dropped the final mushrooms needed
-				show_popup_message("Respawn Set!\nPot is Full (3/3)")
-			else:
-				# They walked past an already full pot
-				show_popup_message("Checkpoint Saved!\nPot is Full (3/3)")
+			show_popup_message("Respawn Set!\nPot is Full (3/3)")
+			play_full_color_effect()
+			spawn_stew() # Spawns the stew!
 				
 		elif dropped_amount > 0:
-			# Player deposited some mushrooms, but the pot is not full yet (1/3 or 2/3)
 			show_popup_message("Mushrooms Added!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
 			
 		elif stored_mushrooms > 0:
-			# Player didn't deposit anything, and the pot isn't full yet
 			show_popup_message("Need more to save!\nPot: " + str(stored_mushrooms) + "/" + str(max_capacity))
 			
-		else:
-			# Pot is empty, and player dropped 0 mushrooms
+		elif stored_mushrooms == 0:
 			show_popup_message("Empty pockets!\nNeed mushrooms to start stew.")
 
-# --- NEW: EFFECT FUNCTIONS ---
+# --- EFFECT FUNCTIONS ---
 
 func play_deposit_effect():
 	if deposit_particles:
 		deposit_particles.restart() 
 		deposit_particles.emitting = true
 		
-		# Wait exactly 3 seconds
 		await get_tree().create_timer(3.0).timeout
-		
-		# Force it to stop emitting and dip
 		deposit_particles.emitting = false
 
 func play_full_color_effect():
 	if pot_sprite:
 		var tween = create_tween()
-		# Tween to green quickly (0.3 seconds)
 		tween.tween_property(pot_sprite, "modulate", Color.GREEN, 0.3)
-		# Hold the green color for a bit (1.5 seconds)
 		tween.tween_interval(1.5)
-		# Fade back to normal/white (1.0 seconds)
 		tween.tween_property(pot_sprite, "modulate", Color.WHITE, 1.0)
 
 
@@ -103,3 +93,14 @@ func show_popup_message(message: String):
 	tween.set_ease(Tween.EASE_IN)
 	tween.tween_property(label, "modulate", Color.TRANSPARENT, 2.0)
 	tween.tween_callback(label.queue_free)
+
+# --- SPAWN FUNCTION ---
+func spawn_stew():
+	if stew_scene != null:
+		# --- NEW: Wait 0.3 seconds so it matches the pot turning green! ---
+		await get_tree().create_timer(0.3).timeout 
+		
+		var stew_instance = stew_scene.instantiate()
+		get_parent().add_child(stew_instance)
+		
+		stew_instance.global_position = global_position + Vector2(0, -40)

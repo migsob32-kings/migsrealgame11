@@ -1,7 +1,8 @@
-[gd_scene load_steps=47 format=3 uid="uid://d0m2h77tci37"]
+[gd_scene load_steps=48 format=3 uid="uid://d0m2h77tci37"]
 
 [ext_resource type="Script" uid="uid://dn67cfcoh7kji" path="res://Scripts/stew_fire.gd" id="1_i34a1"]
 [ext_resource type="Texture2D" uid="uid://tsc87o5abiav" path="res://Sprites/Campfire with food sheet.png" id="1_jl3eh"]
+[ext_resource type="PackedScene" uid="uid://d1cab041ciq0f" path="res://scenes/stew.tscn" id="2_fw2j1"]
 [ext_resource type="Texture2D" uid="uid://b4cxgvgabpvdh" path="res://Sprites/2026_08_11_0nl_Kleki.png" id="3_xal5g"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_i34a1"]
@@ -313,6 +314,7 @@ scale_max = 0.02
 script = ExtResource("1_i34a1")
 pot_sprite = NodePath("StewFire")
 deposit_particles = NodePath("DepositParticles")
+stew_scene = ExtResource("2_fw2j1")
 
 [node name="StewFire" type="AnimatedSprite2D" parent="."]
 position = Vector2(9.53674e-07, -9.53674e-07)

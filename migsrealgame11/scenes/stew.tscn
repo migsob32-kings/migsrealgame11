@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3 uid="uid://d1cab041ciq0f"]
+
+[ext_resource type="Script" uid="uid://do5vmb82qe5b2" path="res://Scripts/stew.gd" id="1_idu6o"]
+[ext_resource type="Texture2D" uid="uid://vikmtcg1l7jo" path="res://Sprites/Food.png" id="1_pd0ay"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idu6o"]
+atlas = ExtResource("1_pd0ay")
+region = Rect2(80, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_x0mpq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idu6o")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1en5s"]
+radius = 18.0
+
+[node name="Stew" type="Area2D"]
+script = ExtResource("1_idu6o")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(2.09795, 2.09795)
+sprite_frames = SubResource("SpriteFrames_x0mpq")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(2.09795, 2.09795)
+shape = SubResource("CircleShape2D_1en5s")
