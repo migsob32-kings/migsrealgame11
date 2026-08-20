@@ -3,7 +3,7 @@ extends CharacterBody2D
 # --- Signals for HUD Communication ---
 signal health_changed(new_health, max_health)
 signal mushrooms_changed(count)
-signal jumps_changed(current_jumps, max_jumps) 
+signal stew_buff_changed(current_bars, max_bars) # --- UPDATED SIGNAL ---
 
 # --- HUD Reference ---
 @export var health_bar: TextureProgressBar
@@ -17,13 +17,19 @@ var health: int = max_health
 var max_jumps: int = 2 
 var current_jumps: int = max_jumps 
 
+# --- Stew Buff System ---
+var stew_bars: int = 0
+var max_stew_bars: int = 10 
+var time_per_bar: float = 30.0 
+var current_stew_timer: float = 0.0
+
 # --- Respawn System ---
 var respawn_position: Vector2
 var is_respawning: bool = false 
 
-# --- Sprite Positioning ---
-@export var right_facing_position: float = 0.0
-@export var left_facing_position: float = 0.0 
+# --- Sprite Positioning (Defaults fixed to match your inspector!) ---
+@export var right_facing_position: float = 13.0
+@export var left_facing_position: float = -13.0 
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -500.0
@@ -70,7 +76,6 @@ var beginfire_finished = false
 var can_shoot = true
 
 var last_aim_direction: Vector2 = Vector2.RIGHT
-
 var trajectory_line: Line2D
 
 # Inventory
@@ -93,7 +98,7 @@ func _ready():
 		sprite.animation_finished.connect(_on_animation_finished)
 
 	health_changed.emit(health, max_health)
-	jumps_changed.emit(current_jumps, max_jumps) 
+	stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
 	update_ui()
 	
 	if health_bar:
@@ -102,7 +107,6 @@ func _ready():
 func _input(event):
 	if event.is_action_pressed("zoom_in"):
 		apply_zoom(-ZOOM_STEP)
-
 	if event.is_action_pressed("zoom_out"):
 		apply_zoom(ZOOM_STEP)
 
@@ -125,7 +129,6 @@ func _physics_process(delta):
 		is_jumping = false
 		double_jump_available = true
 
-	# Changed "ui_accept" to "jump" based on your Input Map
 	if Input.is_action_just_pressed("jump"):
 		jump_buffer_timer = JUMP_BUFFER_TIME
 
@@ -137,21 +140,16 @@ func _physics_process(delta):
 		jump_buffer_timer = 0
 		coyote_timer = 0
 		is_jumping = true
-		
 		current_jumps -= 1
-		jumps_changed.emit(current_jumps, max_jumps)
 
 		if not is_aiming and not is_firing:
 			play_animation("jump")
 
-	# Changed "ui_accept" to "jump" based on your Input Map
 	elif Input.is_action_just_pressed("jump") and not is_on_floor() and double_jump_available and coyote_timer <= 0:
 		velocity.y = JUMP_VELOCITY
 		double_jump_available = false
 		is_jumping = true
-		
 		current_jumps -= 1
-		jumps_changed.emit(current_jumps, max_jumps)
 
 		if not is_aiming and not is_firing:
 			play_animation("jump")
@@ -160,15 +158,12 @@ func _physics_process(delta):
 
 	if direction != 0:
 		velocity.x = direction * SPEED
-
 		if not is_aiming:
 			flip_sprite(direction)
-
 		if not is_aiming and not is_jumping and not is_firing:
 			play_animation("walk")
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED * delta * 8)
-
 		if not is_aiming and not is_jumping and not is_firing:
 			play_animation("idle")
 
@@ -177,18 +172,27 @@ func _physics_process(delta):
 
 	if was_airborne and is_on_floor():
 		current_jumps = max_jumps
-		jumps_changed.emit(current_jumps, max_jumps)
-		
 		if landing_velocity > 500:
 			play_jump_particles()
 		landing_velocity = 0
+
+	# --- Stew Buff Drain Logic ---
+	if stew_bars > 0:
+		current_stew_timer -= delta
+		if current_stew_timer <= 0:
+			stew_bars -= 1
+			stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
+			
+			if stew_bars > 0:
+				current_stew_timer = time_per_bar 
+			else:
+				current_stew_timer = 0.0 
 
 func handle_shooting(_delta):
 	if Input.is_action_just_pressed("shoot") and can_shoot:
 		is_aiming = true
 		is_firing = true
 		beginfire_finished = false
-		
 		update_trajectory()
 		trajectory_line.show()
 		play_animation("beginfire")
@@ -196,7 +200,6 @@ func handle_shooting(_delta):
 	elif Input.is_action_pressed("shoot") and is_aiming:
 		if sprite.animation == "beginfire" and beginfire_finished:
 			play_animation("holdfire")
-
 		look_at_mouse()
 		update_trajectory()
 		velocity.x *= 0.5
@@ -205,7 +208,6 @@ func handle_shooting(_delta):
 		is_aiming = false
 		trajectory_line.hide()
 		sprite.rotation = 0
-		
 		play_animation("endfire")
 		shoot_arrow()
 
@@ -213,7 +215,6 @@ func play_jump_particles():
 	if sprite and sprite.has_node("GPUParticles2D"):
 		var particles = sprite.get_node("GPUParticles2D")
 		particles.global_position = global_position + Vector2(0, 0)
-
 		var mat = particles.process_material
 		if mat:
 			mat.direction = Vector3(0, -1, 0)
@@ -221,7 +222,6 @@ func play_jump_particles():
 			mat.initial_velocity_min = 40
 			mat.initial_velocity_max = 100
 			mat.gravity = Vector3(0, 250, 0)
-
 		particles.modulate = Color(0.42, 0.30, 0.18)
 		particles.restart()
 		particles.emitting = true
@@ -230,25 +230,20 @@ func get_aim_direction() -> Vector2:
 	var bow_pos = get_bow_position()
 	var mouse_pos = get_global_mouse_position()
 	var to_mouse = mouse_pos - bow_pos
-
 	if to_mouse.length() < AIM_DEAD_ZONE:
 		return last_aim_direction
-
 	var facing_left = sprite.flip_h
 	var angle = atan2(to_mouse.y, abs(to_mouse.x))
 	angle = clamp(angle, deg_to_rad(MAX_AIM_UP), deg_to_rad(MAX_AIM_DOWN))
-
 	var dir = Vector2(cos(angle), sin(angle))
 	if facing_left:
 		dir.x = -dir.x
-
 	last_aim_direction = dir
 	return dir
 
 func look_at_mouse():
 	var mouse_pos = get_global_mouse_position()
 	sprite.flip_h = mouse_pos.x < global_position.x
-	
 	if sprite.flip_h:
 		sprite.position.x = left_facing_position
 	else:
@@ -256,7 +251,6 @@ func look_at_mouse():
 
 	var aim_dir = get_aim_direction()
 	var tilt_angle = atan2(aim_dir.y, abs(aim_dir.x))
-
 	if sprite.flip_h:
 		sprite.rotation = -tilt_angle
 	else:
@@ -267,34 +261,25 @@ func update_trajectory():
 	var velocity_vector = aim_dir * SHOOT_POWER
 	var effective_gravity = gravity * ARROW_GRAVITY_SCALE
 	var points = []
-
 	var start_pos = get_bow_position() 
-
 	for i in range(TRAJECTORY_POINTS):
 		var time = i * TRAJECTORY_TIME_STEP
 		var x = velocity_vector.x * time
 		var y = velocity_vector.y * time + (0.5 * effective_gravity * time * time)
-		
 		points.append(start_pos + Vector2(x, y))
-
 	trajectory_line.points = points
 
 func shoot_arrow():
 	if arrow_scene == null or not can_shoot:
 		return
-
 	can_shoot = false
-
 	var arrow = arrow_scene.instantiate()
 	get_parent().add_child(arrow)
-	
 	arrow.global_position = get_bow_position()
 	var aim_dir = get_aim_direction()
-
 	arrow.linear_velocity = aim_dir * SHOOT_POWER
 	arrow.rotation = aim_dir.angle()
 	arrow.add_collision_exception_with(self)
-
 	await get_tree().create_timer(SHOOT_COOLDOWN).timeout
 	can_shoot = true
 
@@ -321,51 +306,50 @@ func _on_animation_finished():
 	elif sprite.animation == "endfire":
 		is_firing = false 
 
-# --- Damage and Death Functions ---
 func take_damage(amount: int):
 	health -= amount
 	health_changed.emit(health, max_health)
-	
 	if sprite:
 		var tween = create_tween()
 		sprite.modulate = Color(1, 0, 0)
 		tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
-	
 	if health <= 0:
 		die()
 
 func heal(amount: int):
 	if health < max_health:
 		health += amount
-		# Prevent health from going over the maximum limit
 		if health > max_health:
 			health = max_health
-			
 		health_changed.emit(health, max_health)
-		
-		# Optional: Add a green flash just like your red damage flash!
 		if sprite:
 			var tween = create_tween()
-			sprite.modulate = Color(0, 1, 0) # Green color
+			sprite.modulate = Color(0, 1, 0) 
 			tween.tween_property(sprite, "modulate", Color.WHITE, 0.2)
+
+func consume_stew(heal_amount: int, bars_to_add: int):
+	heal(heal_amount)
+	stew_bars += bars_to_add
+	if stew_bars > max_stew_bars:
+		stew_bars = max_stew_bars
+		
+	current_stew_timer = time_per_bar 
+	stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
 
 func die():
 	health = max_health
 	health_changed.emit(health, max_health)
 	velocity = Vector2.ZERO
 	global_position = respawn_position
-	
 	is_respawning = true
 	await get_tree().create_timer(1.0).timeout
 	is_respawning = false
 
-# --- Inventory and UI Functions ---
 func add_to_inventory(item: String, amount: int):
 	if inventory.has(item):
 		inventory[item] += amount
 	else:
 		inventory[item] = amount
-		
 	if item == "mushroom":
 		update_ui()
 
@@ -382,24 +366,18 @@ func set_respawn_point(new_pos: Vector2):
 
 func drop_all_items(item: String) -> int:
 	var dropped_amount = 0
-	
 	if inventory.has(item):
 		dropped_amount = inventory[item]
 		inventory[item] = 0
-		
 	if item == "mushroom":
 		update_ui()
-		
 	return dropped_amount
 
 func drop_amount(item: String, amount: int) -> int:
 	var actual_drop = 0
-	
 	if inventory.has(item):
 		actual_drop = min(inventory[item], amount)
 		inventory[item] -= actual_drop
-		
 	if item == "mushroom":
 		update_ui()
-		
 	return actual_drop

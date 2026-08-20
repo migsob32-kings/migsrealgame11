@@ -21,5 +21,7 @@ func _on_body_exited(body):
 func _process(_delta):
 	# Check if the player is near AND presses 'F'
 	if player_in_range and Input.is_action_just_pressed("interact"):
-		player_in_range.heal(heal_amount)
-		queue_free() # Deletes the stew from the scene
+		# Trigger the new consume_stew function, passing the heal amount and the 4 bars!
+		if player_in_range.has_method("consume_stew"):
+			player_in_range.consume_stew(heal_amount, 4)
+			queue_free() # Deletes the stew from the scene
