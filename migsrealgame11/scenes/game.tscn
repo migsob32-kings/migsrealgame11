@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=4 uid="uid://etuav3rir51h"]
+[gd_scene load_steps=38 format=4 uid="uid://etuav3rir51h"]
 
 [ext_resource type="Texture2D" uid="uid://cuvtuhyv4ccym" path="res://Sprites/MapSprites/GandalfHardcore Background layers_layer 3.png" id="1_0tnpc"]
 [ext_resource type="Texture2D" uid="uid://b1f0iutuju0ln" path="res://Sprites/MapSprites/GandalfHardcore Background layers_layer 2.png" id="2_vtaks"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://dnur8kdu0w0ex" path="res://scenes/mushroompickup.tscn" id="10_vtaks"]
 [ext_resource type="PackedScene" uid="uid://wdlbiqylodk4" path="res://scenes/platform.tscn" id="12_dinhu"]
 [ext_resource type="PackedScene" uid="uid://fyrck6j2dduy" path="res://scenes/hud.tscn" id="14_trtic"]
+[ext_resource type="PackedScene" uid="uid://d1cab041ciq0f" path="res://scenes/stew.tscn" id="16_ca42v"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hve3p"]
 texture = ExtResource("1_0tnpc")
@@ -9060,6 +9061,24 @@ position = Vector2(5775, -661)
 
 [node name="Stewpot" parent="Stewpots" instance=ExtResource("6_trtic")]
 position = Vector2(9540, -486)
+
+[node name="Stew" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9089, -503)
+
+[node name="Stew2" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9194, -496)
+
+[node name="Stew3" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9259, -495)
+
+[node name="Stew4" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9010, -502)
+
+[node name="Stew5" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9399, -501)
+
+[node name="Stew6" parent="." instance=ExtResource("16_ca42v")]
+position = Vector2(9593, -499)
 
 [connection signal="health_changed" from="CharacterBody2D" to="CharacterBody2D/HUD" method="_on_player_health_changed"]
 [connection signal="mushrooms_changed" from="CharacterBody2D" to="CharacterBody2D/HUD" method="_on_player_health_changed"]

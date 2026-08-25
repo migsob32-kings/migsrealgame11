@@ -3,7 +3,10 @@ extends CharacterBody2D
 # --- Signals for HUD Communication ---
 signal health_changed(new_health, max_health)
 signal mushrooms_changed(count)
-signal stew_buff_changed(current_bars, max_bars) # --- UPDATED SIGNAL ---
+signal stew_buff_changed(current_bars, max_bars)
+signal super_mode_activated(duration)
+signal super_mode_timer_changed(time_left, max_time) 
+signal super_mode_deactivated() 
 
 # --- HUD Reference ---
 @export var health_bar: TextureProgressBar
@@ -17,17 +20,26 @@ var health: int = max_health
 var max_jumps: int = 2 
 var current_jumps: int = max_jumps 
 
-# --- Stew Buff System ---
+# --- Stew Buff & Super Mode System ---
 var stew_bars: int = 0
 var max_stew_bars: int = 10 
 var time_per_bar: float = 30.0 
 var current_stew_timer: float = 0.0
 
+@export var super_arrow_scene: PackedScene
+var is_super_mode: bool = false
+var super_mode_timer: float = 0.0
+const SUPER_MODE_DURATION: float = 15.0
+
+# --- Double Tap Variables ---
+var last_interact_time: float = 0.0
+const DOUBLE_TAP_TIME: float = 0.4 # Time in seconds allowed between taps
+
 # --- Respawn System ---
 var respawn_position: Vector2
 var is_respawning: bool = false 
 
-# --- Sprite Positioning (Defaults fixed to match your inspector!) ---
+# --- Sprite Positioning ---
 @export var right_facing_position: float = 13.0
 @export var left_facing_position: float = -13.0 
 
@@ -61,10 +73,8 @@ const ZOOM_STEP = 0.1
 # Jump helpers
 const COYOTE_TIME = 0.1
 var coyote_timer = 0.0
-
 const JUMP_BUFFER_TIME = 0.1
 var jump_buffer_timer = 0.0
-
 var double_jump_available = false
 var landing_velocity = 0.0
 
@@ -74,7 +84,6 @@ var is_aiming = false
 var is_firing = false
 var beginfire_finished = false
 var can_shoot = true
-
 var last_aim_direction: Vector2 = Vector2.RIGHT
 var trajectory_line: Line2D
 
@@ -98,7 +107,7 @@ func _ready():
 		sprite.animation_finished.connect(_on_animation_finished)
 
 	health_changed.emit(health, max_health)
-	stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
+	stew_buff_changed.emit(stew_bars, max_stew_bars)
 	update_ui()
 	
 	if health_bar:
@@ -109,6 +118,17 @@ func _input(event):
 		apply_zoom(-ZOOM_STEP)
 	if event.is_action_pressed("zoom_out"):
 		apply_zoom(ZOOM_STEP)
+		
+	# --- Double-Tap Super Mode Activation ---
+	if event.is_action_pressed("interact"):
+		if stew_bars >= max_stew_bars and not is_super_mode:
+			# Get current time in seconds
+			var current_time = Time.get_ticks_msec() / 1000.0 
+			
+			if current_time - last_interact_time <= DOUBLE_TAP_TIME:
+				activate_super_mode()
+				
+			last_interact_time = current_time
 
 func apply_zoom(amount: float):
 	var new_zoom_value = clamp(camera.zoom.x + amount, MIN_ZOOM, MAX_ZOOM)
@@ -176,17 +196,32 @@ func _physics_process(delta):
 			play_jump_particles()
 		landing_velocity = 0
 
-	# --- Stew Buff Drain Logic ---
-	if stew_bars > 0:
-		current_stew_timer -= delta
-		if current_stew_timer <= 0:
-			stew_bars -= 1
-			stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
-			
-			if stew_bars > 0:
-				current_stew_timer = time_per_bar 
-			else:
-				current_stew_timer = 0.0 
+	# --- Stew Buff & Super Mode Logic ---
+	if is_super_mode:
+		super_mode_timer -= delta
+		super_mode_timer_changed.emit(super_mode_timer, SUPER_MODE_DURATION) # Update HUD timer
+		
+		if super_mode_timer <= 0:
+			is_super_mode = false
+			super_mode_deactivated.emit() # Tell HUD to revert back to normal
+			stew_buff_changed.emit(stew_bars, max_stew_bars) # Reset visual empty bar
+	else:
+		# Normal stew drain logic
+		if stew_bars > 0:
+			current_stew_timer -= delta
+			if current_stew_timer <= 0:
+				stew_bars -= 1
+				stew_buff_changed.emit(stew_bars, max_stew_bars)
+				if stew_bars > 0:
+					current_stew_timer = time_per_bar 
+				else:
+					current_stew_timer = 0.0 
+
+func activate_super_mode():
+	is_super_mode = true
+	super_mode_timer = SUPER_MODE_DURATION
+	stew_bars = 0 
+	super_mode_activated.emit(SUPER_MODE_DURATION)
 
 func handle_shooting(_delta):
 	if Input.is_action_just_pressed("shoot") and can_shoot:
@@ -270,10 +305,20 @@ func update_trajectory():
 	trajectory_line.points = points
 
 func shoot_arrow():
-	if arrow_scene == null or not can_shoot:
+	if not can_shoot:
 		return
 	can_shoot = false
-	var arrow = arrow_scene.instantiate()
+	
+	# --- Super Arrow Check ---
+	var arrow: Node2D
+	if is_super_mode and super_arrow_scene:
+		arrow = super_arrow_scene.instantiate()
+	elif arrow_scene:
+		arrow = arrow_scene.instantiate()
+	else:
+		can_shoot = true
+		return
+		
 	get_parent().add_child(arrow)
 	arrow.global_position = get_bow_position()
 	var aim_dir = get_aim_direction()
@@ -334,7 +379,7 @@ func consume_stew(heal_amount: int, bars_to_add: int):
 		stew_bars = max_stew_bars
 		
 	current_stew_timer = time_per_bar 
-	stew_buff_changed.emit(stew_bars, max_stew_bars) # --- UPDATED ---
+	stew_buff_changed.emit(stew_bars, max_stew_bars) 
 
 func die():
 	health = max_health

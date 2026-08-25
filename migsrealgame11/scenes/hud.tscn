@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://fyrck6j2dduy"]
+[gd_scene load_steps=6 format=3 uid="uid://fyrck6j2dduy"]
 
 [ext_resource type="Script" uid="uid://ddy6xrw5m4o54" path="res://Scripts/hud.gd" id="1_5ysmq"]
 [ext_resource type="Texture2D" uid="uid://cu4y1w4xqlsu3" path="res://Sprites/HUD/Hp bar.png" id="1_oo0fn"]
 [ext_resource type="Texture2D" uid="uid://8hdgr1phb81k" path="res://Sprites/HUD/red bar.png" id="2_5ysmq"]
 [ext_resource type="Texture2D" uid="uid://bfn6ffb2xqjuy" path="res://Sprites/yellow bar.png" id="2_6fi6k"]
+[ext_resource type="Texture2D" uid="uid://wbsd18xmukjt" path="res://Sprites/special arrow.png" id="5_uo2fv"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_5ysmq")
@@ -24,3 +25,10 @@ fill_mode = 3
 texture_over = ExtResource("1_oo0fn")
 texture_progress = ExtResource("2_5ysmq")
 texture_progress_offset = Vector2(4, 4.2)
+
+[node name="SpecialArrowPrompt" type="TextureRect" parent="."]
+offset_top = 139.0
+offset_right = 116.0
+offset_bottom = 203.0
+scale = Vector2(1.52, 1.52)
+texture = ExtResource("5_uo2fv")

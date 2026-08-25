@@ -1,8 +1,9 @@
-[gd_scene load_steps=36 format=3 uid="uid://darvh43ifot14"]
+[gd_scene load_steps=37 format=3 uid="uid://darvh43ifot14"]
 
 [ext_resource type="Script" uid="uid://ckvm425aqthxb" path="res://Scripts/player.gd" id="1_g2els"]
 [ext_resource type="PackedScene" uid="uid://b5i66gots2pvq" path="res://scenes/arrow.tscn" id="2_dqkch"]
 [ext_resource type="Texture2D" uid="uid://dqxwblw04f2mi" path="res://Sprites/GandalfHardcore Archer/GandalfHardcore Archer sheet.png" id="2_qhqgy"]
+[ext_resource type="PackedScene" uid="uid://dvxf1e2sfymd8" path="res://scenes/super_arrow.tscn" id="2_qlg0r"]
 [ext_resource type="Script" uid="uid://b527bqtro10gp" path="res://Scripts/camera_2d.gd" id="3_qhqgy"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_fulsm"]
@@ -252,6 +253,7 @@ height = 74.0
 collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_g2els")
+super_arrow_scene = ExtResource("2_qlg0r")
 arrow_scene = ExtResource("2_dqkch")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
