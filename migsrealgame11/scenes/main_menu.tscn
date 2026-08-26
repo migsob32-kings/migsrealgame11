@@ -1,0 +1,58 @@
+[gd_scene load_steps=3 format=3 uid="uid://342mysck1c08"]
+
+[ext_resource type="Script" uid="uid://bs7p1mvaim1ak" path="res://Scripts/main_menu.gd" id="1_l6cm7"]
+[ext_resource type="Texture2D" uid="uid://b1iara4ot5wrp" path="res://Sprites/2026_08_26_0lj_Kleki.png" id="2_ekxnf"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_l6cm7")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -0.000868069
+anchor_top = 0.00462958
+anchor_right = 1.08701
+anchor_bottom = 1.07309
+offset_right = 395.761
+offset_bottom = 218.64
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.84, 0.84)
+texture = ExtResource("2_ekxnf")
+expand_mode = 1
+stretch_mode = 6
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.405816
+anchor_top = 0.273148
+anchor_right = 0.594184
+anchor_bottom = 0.726852
+offset_bottom = -3.05176e-05
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.986257, 1)
+metadata/_edit_use_anchors_ = true
+
+[node name="PlayButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 100
+text = "Play
+"
+
+[node name="QuitButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 100
+text = "Quit
+"
+
+[connection signal="pressed" from="VBoxContainer/PlayButton" to="." method="_on_play_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
